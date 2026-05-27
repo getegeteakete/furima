@@ -6,37 +6,41 @@ export default function App() {
   const [view, setView] = useState<'home' | 'live' | 'seller'>('home');
   const [message, setMessage] = useState('');
 
+  // Navigation Component
+  const NavButtons = () => (
+    <div className="fixed top-4 right-4 z-50 flex gap-2">
+      <button
+        onClick={() => setView('home')}
+        className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
+          view === 'home' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'
+        }`}
+      >
+        Home
+      </button>
+      <button
+        onClick={() => setView('live')}
+        className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
+          view === 'live' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'
+        }`}
+      >
+        Live
+      </button>
+      <button
+        onClick={() => setView('seller')}
+        className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
+          view === 'seller' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'
+        }`}
+      >
+        Seller
+      </button>
+    </div>
+  );
+
   // ===== HOME VIEW =====
   if (view === 'home') {
     return (
       <div className="min-h-screen bg-white pb-16">
-        {/* Demo Navigation */}
-        <div className="fixed top-4 right-4 z-50 flex gap-2">
-          <button
-            onClick={() => setView('home')}
-            className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
-              view === 'home' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'
-            }`}
-          >
-            Home
-          </button>
-          <button
-            onClick={() => setView('live')}
-            className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
-              view === 'live' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'
-            }`}
-          >
-            Live
-          </button>
-          <button
-            onClick={() => setView('seller')}
-            className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${
-              view === 'seller' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'
-            }`}
-          >
-            Seller
-          </button>
-        </div>
+        <NavButtons />
 
         {/* Header */}
         <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 p-4">
@@ -128,12 +132,7 @@ export default function App() {
   if (view === 'live') {
     return (
       <div className="min-h-screen bg-white flex flex-col pb-16">
-        {/* Demo Navigation */}
-        <div className="fixed top-4 right-4 z-50 flex gap-2">
-          <button onClick={() => setView('home')} className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${view === 'home' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'}`}>Home</button>
-          <button onClick={() => setView('live')} className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${view === 'live' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'}`}>Live</button>
-          <button onClick={() => setView('seller')} className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${view === 'seller' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'}`}>Seller</button>
-        </div>
+        <NavButtons />
 
         {/* Header */}
         <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 p-4 flex justify-between items-center">
@@ -232,12 +231,7 @@ export default function App() {
   // ===== SELLER VIEW =====
   return (
     <div className="min-h-screen bg-white pb-16">
-      {/* Demo Navigation */}
-      <div className="fixed top-4 right-4 z-50 flex gap-2">
-        <button onClick={() => setView('home')} className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${view === 'home' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'}`}>Home</button>
-        <button onClick={() => setView('live')} className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${view === 'live' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'}`}>Live</button>
-        <button onClick={() => setView('seller')} className={`px-4 py-2 rounded-md text-xs font-medium transition-colors ${view === 'seller' ? 'bg-black text-white' : 'bg-gray-200 text-black hover:bg-gray-300'}`}>Seller</button>
-      </div>
+      <NavButtons />
 
       {/* Header */}
       <div className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 p-4">
