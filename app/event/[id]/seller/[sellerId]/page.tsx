@@ -10,8 +10,8 @@ import {
   CloseIcon,
   CheckIcon,
   HeartIcon,
-} from '../../../components/Icons';
-import { getEventById, type Product } from '../../../lib/events';
+} from '../../../../components/Icons';
+import { getTimeSlotEventById, getSellerById, type Product } from '../../../../lib/events';
 
 type Message = {
   id: number;
@@ -25,7 +25,22 @@ export default function ChatRoomPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = params.id as string;
-  const event = getEventById(eventId);
+  const sellerId = params.sellerId as string;
+  const event = getTimeSlotEventById(eventId);
+  const seller = getSellerById(sellerId);
+
+  if (!event || !seller) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="container-main py-20 text-center">
+          <p className="text-xl text-gray-600">イベントまたは出店者が見つかりません</p>
+          <Link href="/events" className="inline-block mt-6 text-orange-600 font-bold">
+            ← イベント一覧へ戻る
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const [products, setProducts] = useState<(Product & { soldOut: boolean })[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -38,15 +53,15 @@ export default function ChatRoomPage() {
   const [publicMessages, setPublicMessages] = useState<Message[]>([
     {
       id: 1,
-      text: 'mina.craft がOPENしました！🎉',
+      text: `${seller.name} がOPENしました！`,
       sender: 'system',
-      timestamp: '20:00',
+      timestamp: event.startTime,
     },
     {
       id: 2,
-      text: 'わあ、レジン可愛い〜',
+      text: `${seller.name} の商品が素敵ですね！`,
       sender: 'shop',
-      timestamp: '20:01',
+      timestamp: `${parseInt(event.startTime.split(':')[0]) + 1}:00`,
     },
     {
       id: 3,
@@ -70,32 +85,32 @@ export default function ChatRoomPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (event) {
-      setProducts(event.products.map((p) => ({ ...p, soldOut: false })));
-      setSelectedProduct(event.products[0]);
+    if (seller) {
+      setProducts(seller.products.map((p) => ({ ...p, soldOut: false })));
+      setSelectedProduct(seller.products[0]);
 
       setMessages([
         {
           id: 1,
           text: '接客が開始されました。10分間ごゆっくりお楽しみください！',
           sender: 'system',
-          timestamp: '20:00',
+          timestamp: event.startTime,
         },
         {
           id: 2,
-          text: `こんにちは！${event.name}です。本日はお越しいただきありがとうございます`,
+          text: `こんにちは！${seller.name}です。本日はお越しいただきありがとうございます`,
           sender: 'shop',
-          timestamp: '20:00',
+          timestamp: event.startTime,
         },
         {
           id: 3,
           text: '気になる商品があれば、上のリストからタップしてください。商品の詳細やお値段相談もOKです！',
           sender: 'shop',
-          timestamp: '20:00',
+          timestamp: event.startTime,
         },
       ]);
     }
-  }, [event]);
+  }, [seller, event]);
 
   useEffect(() => {
     if (sessionEnded) return;
@@ -214,7 +229,7 @@ export default function ChatRoomPage() {
             接客時間が終了しました
           </h2>
           <p className="text-sm text-gray-600 mb-8 leading-relaxed">
-            {event.name}さんとのチャットが終了しました。<br />
+            {seller.name}さんとのチャットが終了しました。<br />
             ご利用ありがとうございました！
           </p>
           <div className="flex flex-col gap-3">
@@ -249,11 +264,11 @@ export default function ChatRoomPage() {
             <ArrowLeftIcon size={20} stroke={2} />
           </button>
           <div className="w-10 h-10 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center flex-shrink-0">
-            <ProductIcon type={event.icon} size={22} stroke={1.5} />
+            <ProductIcon type={seller.icon} size={22} stroke={1.5} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-sm sm:text-base truncate flex items-center gap-2">
-              {event.name}
+              {seller.name}
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500 rounded-full text-[9px] font-bold">
                 <span className="w-1 h-1 bg-white rounded-full animate-pulse" />LIVE
               </span>
@@ -403,7 +418,7 @@ export default function ChatRoomPage() {
               <div key={msg.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
                 {!isMe && (
                   <div className="w-9 h-9 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white flex-shrink-0">
-                    <ProductIcon type={event.icon} size={18} stroke={1.5} />
+                    <ProductIcon type={seller.icon} size={18} stroke={1.5} />
                   </div>
                 )}
                 <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[75%]`}>

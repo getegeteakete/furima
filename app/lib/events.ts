@@ -8,7 +8,7 @@ export type Product = {
   description: string;
 };
 
-export type Event = {
+export type Seller = {
   id: string;
   name: string;
   region: string;
@@ -16,16 +16,24 @@ export type Event = {
   tags: string[];
   description: string;
   icon: ProductIconType;
-  startTime: string;
-  endTime: string;
-  date: string;
-  maxReservations: number;
-  currentReservations: number;
-  status: 'upcoming' | 'live' | 'ended';
-  products: Product[];
+  rating: number;
+  followers: number;
+  products: Product[]; // 目玉商品 5点
 };
 
-export const events: Event[] = [
+// 1つの時間帯・地域 = 複数の出店者
+export type TimeSlotEvent = {
+  id: string; // '20:00-shiga' など
+  startTime: string; // '20:00'
+  endTime: string; // '22:00'
+  region: string; // '滋賀'
+  date: string; // '今夜'
+  status: 'upcoming' | 'live' | 'ended';
+  sellers: Seller[]; // 複数の出店者（最大5つまで表示）
+};
+
+// 出店者マスターデータ
+export const sellers: Seller[] = [
   {
     id: 'mina-craft',
     name: 'mina.craft',
@@ -34,12 +42,8 @@ export const events: Event[] = [
     tags: ['ハンドメイド', 'アクセ', 'レジン'],
     description: '滋賀発のハンドメイドアクセサリーショップ。レジン樹脂や天然石を使った一点物アイテムを取り扱っています。',
     icon: 'diamond',
-    startTime: '20:00',
-    endTime: '22:00',
-    date: '今夜',
-    maxReservations: 10,
-    currentReservations: 7,
-    status: 'live',
+    rating: 4.8,
+    followers: 542,
     products: [
       { id: 1, name: 'レジン樹脂ピアス', price: 2800, icon: 'jewelry', description: '透明感が美しいレジンの一点物' },
       { id: 2, name: '天然石ネックレス', price: 4500, icon: 'necklace', description: 'アメジストの天然石を使用' },
@@ -56,12 +60,8 @@ export const events: Event[] = [
     tags: ['古着', 'レトロ', 'ヴィンテージ'],
     description: '京都の古着セレクトショップ。70-90年代のレトロアイテムを中心に取り扱っています。',
     icon: 'shirt',
-    startTime: '20:15',
-    endTime: '22:15',
-    date: '今夜',
-    maxReservations: 10,
-    currentReservations: 5,
-    status: 'upcoming',
+    rating: 4.6,
+    followers: 321,
     products: [
       { id: 1, name: 'ヴィンテージワンピ', price: 8800, icon: 'shirt', description: '70年代のフラワー柄' },
       { id: 2, name: 'レトロブラウス', price: 4500, icon: 'shirt', description: 'パフスリーブが可愛い' },
@@ -78,12 +78,8 @@ export const events: Event[] = [
     tags: ['雑貨', '骨董', 'アンティーク'],
     description: '大阪の骨董雑貨ショップ。アンティーク食器や雑貨を中心に取り扱っています。',
     icon: 'package',
-    startTime: '20:30',
-    endTime: '22:30',
-    date: '今夜',
-    maxReservations: 10,
-    currentReservations: 3,
-    status: 'upcoming',
+    rating: 4.9,
+    followers: 678,
     products: [
       { id: 1, name: 'アンティーク食器セット', price: 3800, icon: 'food', description: '昭和初期のレトロ柄' },
       { id: 2, name: 'ヴィンテージランプ', price: 12000, icon: 'package', description: 'ステンドグラス' },
@@ -92,8 +88,103 @@ export const events: Event[] = [
       { id: 5, name: 'アンティーク手鏡', price: 9800, icon: 'sparkles', description: '銀メッキ装飾' },
     ],
   },
+  {
+    id: 'fukuoka-handmade',
+    name: 'fukuoka.handmade',
+    region: '福岡',
+    category: 'ハンドメイド',
+    tags: ['ハンドメイド', 'バッグ', '革製品'],
+    description: '福岡発のレザークラフトショップ。天然素材を使った温かみのある作品を取り扱っています。',
+    icon: 'bag',
+    rating: 4.7,
+    followers: 456,
+    products: [
+      { id: 1, name: 'ヌメ革トートバッグ', price: 15000, icon: 'bag', description: '手染めヌメ革' },
+      { id: 2, name: '本革ウォレット', price: 8500, icon: 'wallet', description: '迷彩柄' },
+      { id: 3, name: 'レザーキーケース', price: 4800, icon: 'sparkles', description: 'ユリス色' },
+      { id: 4, name: '手作り名刺入れ', price: 3500, icon: 'package', description: 'コンパクトサイズ' },
+      { id: 5, name: '本革ベルト', price: 7200, icon: 'package', description: 'サスペンダーリング付き' },
+    ],
+  },
+  {
+    id: 'hokkaido-craft',
+    name: 'hokkaido.craft',
+    region: '北海道',
+    category: '雑貨・工芸品',
+    tags: ['アイヌ工芸', '木工', '刺繍'],
+    description: '北海道発の伝統工芸品。アイヌ文様を取り入れた現代的な作品を展開しています。',
+    icon: 'sparkles',
+    rating: 4.9,
+    followers: 812,
+    products: [
+      { id: 1, name: 'アイヌ刺繍コースター', price: 2200, icon: 'sparkles', description: '手刺繍' },
+      { id: 2, name: '木彫り小物', price: 5500, icon: 'package', description: '白樺の木' },
+      { id: 3, name: 'アイヌ文様ショール', price: 18000, icon: 'shirt', description: 'ウール素材' },
+      { id: 4, name: '手作り手ぬぐい', price: 3200, icon: 'shirt', description: '伝統柄' },
+      { id: 5, name: 'アイヌ工芸バッグ', price: 12500, icon: 'bag', description: '限定色' },
+    ],
+  },
 ];
 
-export const getEventById = (id: string): Event | undefined => {
-  return events.find((e) => e.id === id);
+// 時間帯・地域ごとのイベント（複数出店者を含む）
+export const timeSlotEvents: TimeSlotEvent[] = [
+  {
+    id: '20:00-shiga',
+    startTime: '20:00',
+    endTime: '22:00',
+    region: '滋賀',
+    date: '今夜',
+    status: 'live',
+    sellers: [sellers[0]], // mina.craft
+  },
+  {
+    id: '20:15-kyoto',
+    startTime: '20:15',
+    endTime: '22:15',
+    region: '京都',
+    date: '今夜',
+    status: 'upcoming',
+    sellers: [sellers[1]], // kyoto.vintage
+  },
+  {
+    id: '20:30-osaka',
+    startTime: '20:30',
+    endTime: '22:30',
+    region: '大阪',
+    date: '今夜',
+    status: 'upcoming',
+    sellers: [sellers[2]], // osaka.antique
+  },
+  {
+    id: '20:45-fukuoka',
+    startTime: '20:45',
+    endTime: '22:45',
+    region: '福岡',
+    date: '今夜',
+    status: 'upcoming',
+    sellers: [sellers[3]], // fukuoka.handmade
+  },
+  {
+    id: '21:00-hokkaido',
+    startTime: '21:00',
+    endTime: '23:00',
+    region: '北海道',
+    date: '今夜',
+    status: 'upcoming',
+    sellers: [sellers[4]], // hokkaido.craft
+  },
+];
+
+// ヘルパー関数
+export const getTimeSlotEventById = (id: string): TimeSlotEvent | undefined => {
+  return timeSlotEvents.find((e) => e.id === id);
 };
+
+export const getSellerById = (id: string): Seller | undefined => {
+  return sellers.find((s) => s.id === id);
+};
+
+// 後方互換性のための関数（古いEventType）
+export type Event = TimeSlotEvent;
+export const events = timeSlotEvents;
+export const getEventById = getTimeSlotEventById;

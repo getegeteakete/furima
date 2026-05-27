@@ -9,20 +9,17 @@ import {
   MapPinIcon,
   ClockIcon,
   ArrowLeftIcon,
-  ArrowRightIcon,
   UserIcon,
   CalendarIcon,
-  ChatIcon,
-  BagIcon,
+  StarIcon,
 } from '../../components/Icons';
-import { getEventById } from '../../lib/events';
+import { getTimeSlotEventById } from '../../lib/events';
 
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = params.id as string;
-  const event = getEventById(eventId);
-  const [isReserving, setIsReserving] = useState(false);
+  const event = getTimeSlotEventById(eventId);
   const [countdownTime, setCountdownTime] = useState<number | null>(null);
 
   // カウントダウンタイマー
@@ -63,30 +60,12 @@ export default function EventDetailPage() {
     );
   }
 
-  const handleReserve = () => {
-    setIsReserving(true);
-    setTimeout(() => {
-      router.push(`/event/${eventId}/waiting`);
-    }, 800);
-  };
-
-  // ステータスに応じた商品表示
-  const displayProducts = 
-    event.status === 'live' 
-      ? event.products 
-      : event.status === 'upcoming'
-      ? event.products.slice(0, 5) // ピックアップ5点のみ
-      : []; // 終了時は非公開
-
-  const reservationProgress = (event.currentReservations / event.maxReservations) * 100;
-  const remainingSlots = event.maxReservations - event.currentReservations;
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50">
       <Header />
 
       {/* Back Link */}
-      <div className="bg-white border-b border-gray-200 dark:border-gray-800 sticky top-16 lg:top-20 z-10">
+      <div className="bg-white border-b border-gray-200 sticky top-16 lg:top-20 z-10">
         <div className="container-main py-4">
           <Link
             href="/events"
@@ -98,222 +77,153 @@ export default function EventDetailPage() {
         </div>
       </div>
 
-      {/* Shop Header */}
-      <section className="bg-white">
-        <div className="container-main py-8 sm:py-10 lg:py-12">
-          <div className="grid grid-cols-12 gap-6 lg:gap-8 items-center">
-            {/* Profile Icon */}
-            <div className="col-span-12 sm:col-span-4 lg:col-span-3 flex justify-center sm:justify-start">
-              <div className="relative">
-                <div className="w-32 h-32 sm:w-36 sm:h-36 lg:w-40 lg:h-40 bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl flex items-center justify-center text-white shadow-lg">
-                  <ProductIcon type={event.icon} size={72} stroke={1.5} />
-                </div>
-                {event.status === 'live' && (
-                  <div className="absolute -top-2 -right-2 flex items-center gap-1.5 px-3 py-1.5 bg-red-500 text-white rounded-full text-xs font-black shadow-md">
-                    <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                    LIVE
-                  </div>
-                )}
+      {/* Timeslot Header */}
+      <section className="bg-white border-b border-gray-200">
+        <div className="container-main py-10 sm:py-12 lg:py-14">
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="px-4 py-2 bg-orange-100 rounded-full">
+                <p className="text-sm font-bold text-orange-700">時間帯イベント</p>
               </div>
-            </div>
-
-            {/* Shop Info */}
-            <div className="col-span-12 sm:col-span-8 lg:col-span-9 text-center sm:text-left">
-              <div className="flex items-center gap-2 justify-center sm:justify-start mb-3 text-orange-600">
-                <MapPinIcon size={16} stroke={2} />
-                <span className="text-sm font-bold">{event.region}</span>
-                <span className="text-gray-300">|</span>
-                <span className="text-sm text-gray-600">{event.category}</span>
-                {event.status === 'upcoming' && (
-                  <>
-                    <span className="text-gray-300">|</span>
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-black">
-                      COMING SOON
-                    </span>
-                  </>
-                )}
-              </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                {event.name}
-              </h1>
-
-              {/* Countdown */}
-              {event.status === 'upcoming' && countdownTime !== null && (
-                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg inline-block">
-                  <p className="text-xs text-orange-700 font-bold mb-1">開催まで</p>
-                  <p className="text-2xl font-black text-orange-600 font-mono">
-                    {formatCountdown(countdownTime)}
-                  </p>
-                </div>
+              {event.status === 'upcoming' && (
+                <span className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-full text-xs font-black">
+                  COMING SOON
+                </span>
               )}
+              {event.status === 'live' && (
+                <span className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-full text-xs font-black">
+                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />LIVE
+                </span>
+              )}
+            </div>
 
-              <p className="text-sm sm:text-base text-gray-700 mb-5 leading-relaxed">
-                {event.description}
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                {event.tags.map((tag) => (
-                  <span key={tag} className="px-4 py-1.5 bg-orange-50 dark:bg-gray-900 text-orange-700 rounded-full text-xs font-bold">
-                    #{tag}
-                  </span>
-                ))}
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+              {event.startTime}〜{event.endTime} {event.region}
+            </h1>
+
+            {/* Countdown */}
+            {event.status === 'upcoming' && countdownTime !== null && (
+              <div className="inline-block mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <p className="text-xs text-orange-700 font-bold mb-1">開催まで</p>
+                <p className="text-3xl font-black text-orange-600 font-mono">
+                  {formatCountdown(countdownTime)}
+                </p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-4 text-gray-700">
+              <div className="flex items-center gap-2">
+                <MapPinIcon size={18} stroke={2} className="text-orange-600" />
+                <span className="font-bold">{event.region}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CalendarIcon size={18} stroke={2} className="text-orange-600" />
+                <span>{event.date}</span>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Event Info Card */}
-      <section className="bg-gray-50 dark:bg-gray-900">
-        <div className="container-main py-8 sm:py-10">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 lg:p-10 shadow-md border border-gray-200 dark:border-gray-800">
-            <div className="grid grid-cols-12 gap-6 lg:gap-8">
-              <div className="col-span-12 sm:col-span-6">
-                <div className="flex items-center gap-2 text-orange-600 mb-2">
-                  <ClockIcon size={16} stroke={2} />
-                  <span className="text-xs font-black tracking-widest uppercase">開催時間</span>
-                </div>
-                <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-2">
-                  {event.startTime}〜{event.endTime}
-                </p>
-                <p className="text-sm text-gray-600">{event.date}</p>
-              </div>
-
-              <div className="col-span-12 sm:col-span-6 sm:border-l sm:border-gray-200 dark:border-gray-800 sm:pl-8">
-                <div className="flex items-center gap-2 text-orange-600 mb-2">
-                  <UserIcon size={16} stroke={2} />
-                  <span className="text-xs font-black tracking-widest uppercase">予約状況</span>
-                </div>
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-orange-600">
-                    {event.currentReservations}
-                  </span>
-                  <span className="text-base text-gray-500 dark:text-gray-400">/ {event.maxReservations}名</span>
-                </div>
-                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden mb-3">
-                  <div
-                    className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all"
-                    style={{ width: `${reservationProgress}%` }}
-                  />
-                </div>
-                <p className="text-sm text-gray-600">
-                  残り <span className="font-black text-orange-600">{remainingSlots}名</span> 予約可能
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Products Section */}
-      {event.status === 'ended' ? (
-        <section className="bg-white">
-          <div className="container-main py-16 sm:py-20 text-center">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-4">
-              このイベントは終了しました
-            </h2>
-            <p className="text-gray-600 mb-8">
-              他のイベントをチェックしてみてください
+          {/* Seller Count */}
+          <div className="p-4 bg-orange-50 rounded-lg">
+            <p className="text-sm font-bold text-orange-700">
+              🏪 出店者: <span className="text-2xl text-orange-600">{event.sellers.length}</span> 店舗
             </p>
-            <Link
-              href="/events"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-bold hover:shadow-lg transition-all"
-            >
-              イベント一覧へ <ArrowRightIcon size={18} stroke={2} />
-            </Link>
           </div>
-        </section>
-      ) : (
-        <section className="bg-white">
-          <div className="container-main py-10 sm:py-14 lg:py-16">
-            <div className="text-center mb-10 lg:mb-12">
-              <p className="text-xs sm:text-sm font-bold text-orange-600 mb-3 tracking-widest uppercase">
-                {event.status === 'upcoming' ? 'ピックアップアイテム' : 'すべての商品'}
-              </p>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-3">
-                {event.status === 'upcoming' ? 'ピックアップ商品 5品' : `${event.products.length}個の商品`}
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600">
-                {event.status === 'upcoming' 
-                  ? 'イベント開催時に全商品が公開されます'
-                  : 'チャット内で詳しくお問い合わせください'
-                }
-              </p>
-            </div>
+        </div>
+      </section>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-5 lg:gap-6">
-              {displayProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="bg-white border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden hover:border-orange-300 hover:shadow-lg transition-all"
-                >
-                  <div className="aspect-square bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 flex items-center justify-center text-orange-600">
-                    <ProductIcon type={product.icon} size={56} stroke={1.5} />
+      {/* Sellers */}
+      <section className="bg-white">
+        <div className="container-main py-12 sm:py-16">
+          <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-10">
+            本イベントの出店者
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
+            {event.sellers.map((seller) => (
+              <div
+                key={seller.id}
+                className="bg-white border-2 border-gray-200 rounded-3xl overflow-hidden hover:border-orange-300 hover:shadow-lg transition-all"
+              >
+                {/* Seller Header */}
+                <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 sm:p-8">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center text-white flex-shrink-0">
+                      <ProductIcon type={seller.icon} size={40} stroke={1.5} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xl sm:text-2xl font-black text-white mb-1 truncate">
+                        {seller.name}
+                      </h3>
+                      <p className="text-sm text-white/90">{seller.category}</p>
+                    </div>
                   </div>
-                  <div className="p-4 sm:p-5">
-                    <p className="text-sm font-black text-gray-900 mb-2 line-clamp-1">
-                      {product.name}
-                    </p>
-                    <p className="text-orange-600 font-black text-base sm:text-lg">
-                      ¥{product.price.toLocaleString()}
-                    </p>
+
+                  <div className="flex items-center gap-4 text-sm text-white/80">
+                    <span className="flex items-center gap-1">
+                      <StarIcon size={14} stroke={2} className="fill-white text-white" />
+                      {seller.rating}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <UserIcon size={14} stroke={2} />
+                      {seller.followers} フォロー
+                    </span>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
-      {/* How it Works */}
-      <section className="bg-orange-50 dark:bg-gray-900">
-        <div className="container-main py-10 sm:py-12">
-          <h3 className="text-lg sm:text-xl lg:text-2xl font-black text-gray-900 mb-8 text-center">
-            予約から購入までの流れ
-          </h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {[
-              { num: '01', Icon: CalendarIcon, title: '予約', desc: '整理券を取得' },
-              { num: '02', Icon: ClockIcon, title: '待機', desc: '順番まで待機' },
-              { num: '03', Icon: ChatIcon, title: 'チャット', desc: '1対1で接客' },
-              { num: '04', Icon: BagIcon, title: '購入', desc: '商品を購入' },
-            ].map((step) => (
-              <div key={step.num} className="bg-white rounded-2xl p-5 sm:p-6 text-center border border-orange-100 dark:border-gray-800">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-orange-100 rounded-xl mb-3 text-orange-600">
-                  <step.Icon size={24} stroke={1.5} />
+                {/* Seller Description */}
+                <div className="p-6 sm:p-8">
+                  <p className="text-sm text-gray-700 mb-6 leading-relaxed">
+                    {seller.description}
+                  </p>
+
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-2 mb-8">
+                    {seller.tags.map((tag) => (
+                      <span key={tag} className="px-3 py-1 bg-orange-50 text-orange-700 rounded-full text-xs font-bold">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Featured Products */}
+                  <div className="mb-8">
+                    <p className="text-xs font-bold text-orange-600 mb-4 tracking-widest uppercase">
+                      目玉商品（5点）
+                    </p>
+                    <div className="grid grid-cols-5 gap-3">
+                      {seller.products.map((product) => (
+                        <div
+                          key={product.id}
+                          className="flex flex-col items-center text-center hover:scale-105 transition-transform cursor-pointer"
+                        >
+                          <div className="w-full aspect-square bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center mb-2 text-orange-600">
+                            <ProductIcon type={product.icon} size={24} stroke={1.5} />
+                          </div>
+                          <p className="text-xs font-bold text-gray-900 line-clamp-1 mb-1">
+                            {product.name}
+                          </p>
+                          <p className="text-xs font-black text-orange-600">
+                            ¥{product.price.toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* CTA Button */}
+                  <button
+                    onClick={() => router.push(`/event/${eventId}/seller/${seller.id}`)}
+                    className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-bold hover:shadow-lg transition-all active:scale-95"
+                  >
+                    {seller.name} とチャットする
+                  </button>
                 </div>
-                <p className="text-orange-500 font-black text-xs mb-1">STEP {step.num}</p>
-                <p className="font-black text-sm sm:text-base text-gray-900 mb-1">{step.title}</p>
-                <p className="text-xs text-gray-600">{step.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
-
-      {/* Sticky CTA Button */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 dark:border-gray-800 shadow-2xl z-20">
-        <div className="container-main py-5 sm:py-6">
-          <button
-            onClick={handleReserve}
-            disabled={isReserving || remainingSlots === 0}
-            className="w-full flex items-center justify-center gap-3 px-6 py-4 sm:py-5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full font-black text-base sm:text-lg shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isReserving ? (
-              <>
-                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                予約中...
-              </>
-            ) : remainingSlots === 0 ? (
-              '満員御礼'
-            ) : (
-              <>このお店を予約する <ArrowRightIcon size={20} stroke={2.5} /></>
-            )}
-          </button>
-          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2.5">
-            予約後、整理券番号が発行されます
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

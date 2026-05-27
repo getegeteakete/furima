@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Header from '../../../components/Header';
+import Header from '../../../../../components/Header';
 import {
   ProductIcon,
   ArrowLeftIcon,
@@ -15,14 +15,16 @@ import {
   BellIcon,
   HourglassIcon,
   SparklesIcon,
-} from '../../../components/Icons';
-import { getEventById } from '../../../lib/events';
+} from '../../../../../components/Icons';
+import { getTimeSlotEventById, getSellerById } from '../../../../../lib/events';
 
 export default function WaitingPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = params.id as string;
-  const event = getEventById(eventId);
+  const sellerId = params.sellerId as string;
+  const event = getTimeSlotEventById(eventId);
+  const seller = getSellerById(sellerId);
 
   const [ticketNumber] = useState(3);
   const [currentServing, setCurrentServing] = useState(1);
@@ -53,6 +55,7 @@ export default function WaitingPage() {
   }, [signalReceived, ticketNumber]);
 
   if (!event) return null;
+  if (!seller) return null;
 
   const waitingAhead = ticketNumber - currentServing;
   const estimatedMinutes = waitingAhead * 10;
@@ -69,7 +72,7 @@ export default function WaitingPage() {
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-orange-600 font-medium"
           >
             <ArrowLeftIcon size={16} stroke={2} />
-            {event.name}の詳細へ
+            イベント詳細へ
           </Link>
         </div>
       </div>
@@ -79,11 +82,11 @@ export default function WaitingPage() {
           {/* Shop Card */}
           <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-md border border-orange-100 mb-6 flex items-center gap-4">
             <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-white flex-shrink-0">
-              <ProductIcon type={event.icon} size={32} stroke={1.5} />
+              <ProductIcon type={seller.icon} size={32} stroke={1.5} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-orange-600 font-bold mb-1">{event.region}</p>
-              <p className="text-base sm:text-lg font-black text-gray-900 truncate">{event.name}</p>
+              <p className="text-base sm:text-lg font-black text-gray-900 truncate">{seller.name}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">{event.startTime} - {event.endTime}</p>
             </div>
           </div>
@@ -108,11 +111,11 @@ export default function WaitingPage() {
                 </h2>
                 <p className="text-sm mb-8 opacity-90 leading-relaxed">
                   チャットルームが準備できました。<br />
-                  10分間、{event.name}さんと<br className="sm:hidden" />1対1でお話できます。
+                  10分間、{seller.name}さんと<br className="sm:hidden" />1対1でお話できます。
                 </p>
 
                 <button
-                  onClick={() => router.push(`/event/${eventId}/chat`)}
+                  onClick={() => router.push(`/event/${eventId}/seller/${sellerId}`)}
                   className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 bg-white text-green-600 rounded-full font-black text-base sm:text-lg shadow-xl hover:scale-105 transition-all active:scale-95"
                 >
                   チャットを開始する <ArrowRightIcon size={20} stroke={2.5} />
@@ -138,7 +141,7 @@ export default function WaitingPage() {
                   <div className="text-7xl sm:text-8xl font-black text-orange-600 mb-3 leading-none">
                     #{String(ticketNumber).padStart(2, '0')}
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">{event.name} - {event.date}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">{seller.name} - {event.date}</p>
                 </div>
 
                 <div className="border-t-2 border-dashed border-gray-200 dark:border-gray-800 mx-6" />
