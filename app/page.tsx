@@ -177,17 +177,17 @@ export default function Home() {
       </section>
 
       {/* ===== SHOPPING NOW ===== */}
-      <section className="relative bg-orange-50 dark:bg-gray-9000 text-white overflow-hidden">
+      <section className="relative bg-gradient-to-br from-orange-100 to-orange-200 dark:bg-gray-900 text-gray-900 dark:text-white overflow-hidden">
         <div aria-hidden className="absolute inset-0">
-          <div className="absolute top-12 right-8 w-40 h-40 bg-orange-400 rounded-full opacity-40" />
-          <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-orange-300 rounded-full opacity-30" />
+          <div className="absolute top-12 right-8 w-40 h-40 bg-orange-300 rounded-full opacity-20" />
+          <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-orange-400 rounded-full opacity-15" />
         </div>
 
         <div className="relative container-main section-spacing-sm">
           <div className="text-center mb-12 lg:mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-4">SHOPPING NOW</h2>
-            <p className="text-base lg:text-lg font-medium mb-3 text-orange-100">見るだけでも楽しい！</p>
-            <p className="text-sm lg:text-base text-orange-100 max-w-2xl mx-auto">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-4 text-orange-700 dark:text-white">SHOPPING NOW</h2>
+            <p className="text-base lg:text-lg font-bold mb-3 text-orange-600 dark:text-orange-300">見るだけでも楽しい！</p>
+            <p className="text-sm lg:text-base text-gray-700 dark:text-gray-300 max-w-2xl mx-auto font-medium">
               他では買えない掘り出し物や限定品も。気になる商品はライブで直接質問できます。
             </p>
           </div>
