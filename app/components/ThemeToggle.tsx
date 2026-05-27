@@ -10,10 +10,9 @@ export default function ThemeToggle() {
   useEffect(() => {
     setMounted(true);
     
-    // システム設定またはlocalStorage から取得
+    // localStorage から取得（明示的に dark が設定されている場合のみダークモード）
     const stored = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const shouldBeDark = stored === 'dark' || (!stored && prefersDark);
+    const shouldBeDark = stored === 'dark'; // ← デフォルトはライト
     
     setIsDark(shouldBeDark);
     updateTheme(shouldBeDark);
