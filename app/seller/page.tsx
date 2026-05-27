@@ -51,7 +51,7 @@ export default function SellerPage() {
       <Header />
 
       {/* Seller Header */}
-      <section className="bg-white border-b border-gray-200">
+      <section className="bg-white border-b border-gray-200 dark:border-gray-800">
         <div className="container-main py-8 sm:py-10">
           <div className="flex items-center gap-5">
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center text-white shadow-md flex-shrink-0">
@@ -76,7 +76,7 @@ export default function SellerPage() {
       </section>
 
       {/* Tabs */}
-      <section className="bg-white border-b border-gray-200 sticky top-16 lg:top-20 z-10">
+      <section className="bg-white border-b border-gray-200 dark:border-gray-800 sticky top-16 lg:top-20 z-10">
         <div className="container-main">
           <div className="flex gap-1 overflow-x-auto no-scrollbar">
             {TABS.map((tab) => (
@@ -110,7 +110,7 @@ export default function SellerPage() {
                   { label: 'イベント開催', value: '8回', change: '+2回', Icon: CalendarIcon },
                   { label: '評価', value: '4.8', change: '★5つ', Icon: StarIcon },
                 ].map((stat) => (
-                  <div key={stat.label} className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-200 hover:shadow-md transition-all">
+                  <div key={stat.label} className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 hover:shadow-md transition-all">
                     <div className="flex items-center justify-between mb-4">
                       <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
                         <stat.Icon size={20} stroke={1.5} />
@@ -126,7 +126,7 @@ export default function SellerPage() {
               </div>
 
               {/* Upcoming Events */}
-              <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
                 <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
                   <h2 className="text-base sm:text-lg font-black text-gray-900">予定中のイベント</h2>
                   <Link href="#" className="text-xs text-orange-600 font-bold hover:underline">
@@ -137,7 +137,7 @@ export default function SellerPage() {
                   {UPCOMING_EVENTS.map((event) => (
                     <div key={event.id} className="px-6 py-5 flex items-center gap-4 hover:bg-orange-50 transition-colors">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                        event.status === 'live' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'
+                        event.status === 'live' ? 'bg-red-100 text-red-600' : 'bg-orange-100 dark:bg-gray-800 text-orange-600'
                       }`}>
                         {event.status === 'live' ? <BoltIcon size={22} stroke={1.5} /> : <CalendarIcon size={22} stroke={1.5} />}
                       </div>
@@ -169,7 +169,7 @@ export default function SellerPage() {
                 ].map((action) => (
                   <button
                     key={action.label}
-                    className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all text-left"
+                    className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 hover:border-orange-300 hover:shadow-md transition-all text-left"
                   >
                     <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center mb-3 text-orange-600">
                       <action.Icon size={22} stroke={1.5} />
@@ -193,7 +193,7 @@ export default function SellerPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {PRODUCTS.map((product) => (
-                  <div key={product.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-all">
+                  <div key={product.id} className="bg-white rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden hover:shadow-md transition-all">
                     <div className="aspect-square bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-orange-700">
                       <ProductIcon type={product.icon} size={56} stroke={1.5} />
                     </div>
@@ -213,7 +213,7 @@ export default function SellerPage() {
 
           {/* Events Tab */}
           {activeTab === 'events' && (
-            <div className="bg-white rounded-3xl border border-gray-200 p-10 sm:p-12 text-center">
+            <div className="bg-white rounded-3xl border border-gray-200 dark:border-gray-800 p-10 sm:p-12 text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-orange-50 rounded-3xl mb-5 text-orange-600">
                 <CalendarIcon size={40} stroke={1.5} />
               </div>
@@ -228,7 +228,7 @@ export default function SellerPage() {
 
           {/* Analytics Tab */}
           {activeTab === 'analytics' && (
-            <div className="bg-white rounded-3xl border border-gray-200 p-7 sm:p-8 lg:p-10">
+            <div className="bg-white rounded-3xl border border-gray-200 dark:border-gray-800 p-7 sm:p-8 lg:p-10">
               <div className="flex items-center gap-3 mb-7">
                 <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
                   <ChartIcon size={20} stroke={1.5} />

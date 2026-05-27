@@ -17,10 +17,10 @@ export default function RegisterPage() {
 
       <main className="flex-1 flex items-center justify-center py-12 sm:py-16 lg:py-20">
         <div className="w-full max-w-md mx-auto px-4 sm:px-6">
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+          <div className="bg-white dark:bg-gray-950 rounded-3xl shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 px-8 py-8 sm:py-10 text-white text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur rounded-2xl mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white dark:bg-gray-950/20 backdrop-blur rounded-2xl mb-4">
                 <SparklesIcon size={32} stroke={1.5} />
               </div>
               <h1 className="text-2xl sm:text-3xl font-black mb-2">無料会員登録</h1>
@@ -51,7 +51,7 @@ export default function RegisterPage() {
                   出店者として
                 </button>
               </div>
-              <p className="text-xs text-gray-500 text-center mt-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-3">
                 {userType === 'buyer' ? '無料・すぐに始められます' : '出店時のみ1,200円〜'}
               </p>
             </div>
@@ -59,44 +59,44 @@ export default function RegisterPage() {
             {/* Form */}
             <div className="px-6 py-7 sm:py-8 space-y-5">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-2">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">
                   お名前 / ショップ名
                 </label>
                 <input
                   type="text"
                   placeholder={userType === 'buyer' ? '田中 太郎' : 'mina.craft'}
-                  className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-2">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">
                   メールアドレス
                 </label>
                 <input
                   type="email"
                   placeholder="your@email.com"
-                  className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-2">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">
                   パスワード
                 </label>
                 <input
                   type="password"
                   placeholder="8文字以上"
-                  className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
 
               {userType === 'seller' && (
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">
                     地域
                   </label>
-                  <select className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors bg-white">
+                  <select className="w-full px-4 py-3.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors bg-white dark:bg-gray-950">
                     <option>選択してください</option>
                     <option>北海道</option>
                     <option>東京</option>
@@ -129,7 +129,7 @@ export default function RegisterPage() {
                   <LineIcon size={20} stroke={1.5} />
                   LINEで登録
                 </button>
-                <button className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white border-2 border-gray-200 text-gray-700 rounded-full font-bold text-sm hover:border-gray-300 transition-all">
+                <button className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white dark:bg-gray-950 border-2 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 rounded-full font-bold text-sm hover:border-gray-300 transition-all">
                   <GoogleIcon size={20} stroke={1.5} />
                   Googleで登録
                 </button>

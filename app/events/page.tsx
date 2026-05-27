@@ -48,8 +48,8 @@ const EVENTS: EventItem[] = [
 
 const statusLabels: Record<Status, { text: string; bg: string; text_color: string }> = {
   live: { text: 'LIVE中', bg: 'bg-red-500', text_color: 'text-white' },
-  soon: { text: 'まもなくOPEN', bg: 'bg-orange-500', text_color: 'text-white' },
-  pending: { text: '開催検討中', bg: 'bg-yellow-400', text_color: 'text-gray-900' },
+  soon: { text: 'まもなくOPEN', bg: 'bg-orange-50 dark:bg-gray-9000', text_color: 'text-white' },
+  pending: { text: '開催検討中', bg: 'bg-yellow-400', text_color: 'text-gray-900 dark:text-white' },
   available: { text: '予約受付中', bg: 'bg-green-500', text_color: 'text-white' },
 };
 
@@ -63,7 +63,7 @@ export default function EventsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <Header />
 
       <PageHero
@@ -73,10 +73,10 @@ export default function EventsPage() {
       />
 
       {/* Filters */}
-      <section className="bg-white border-b border-gray-200 shadow-sm">
+      <section className="bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="container-main py-6 sm:py-8 space-y-5">
           <div>
-            <p className="text-xs font-bold text-gray-500 mb-3 tracking-widest uppercase">地域</p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-3 tracking-widest uppercase">地域</p>
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
               {REGIONS.map((r) => (
                 <button
@@ -84,8 +84,8 @@ export default function EventsPage() {
                   onClick={() => setRegion(r)}
                   className={`flex-shrink-0 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                     region === r
-                      ? 'bg-orange-500 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-orange-50 dark:bg-gray-9000 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
                   }`}
                 >
                   {r}
@@ -94,7 +94,7 @@ export default function EventsPage() {
             </div>
           </div>
           <div>
-            <p className="text-xs font-bold text-gray-500 mb-3 tracking-widest uppercase">カテゴリー</p>
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-3 tracking-widest uppercase">カテゴリー</p>
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
               {CATEGORIES.map((c) => (
                 <button
@@ -102,8 +102,8 @@ export default function EventsPage() {
                   onClick={() => setCategory(c)}
                   className={`flex-shrink-0 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                     category === c
-                      ? 'bg-orange-500 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-orange-50 dark:bg-gray-9000 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
                   }`}
                 >
                   {c}
@@ -118,11 +118,11 @@ export default function EventsPage() {
       <main className="flex-1">
         <section className="container-main section-spacing-sm">
           <div className="flex items-center justify-between mb-8 lg:mb-10">
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
               <span className="font-black text-orange-600 text-lg sm:text-xl">{filtered.length}</span>
               <span className="ml-1.5">件のイベント</span>
             </p>
-            <p className="text-xs sm:text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
               {region !== '全国' && `${region}`}{region !== '全国' && category !== 'すべて' && ' / '}{category !== 'すべて' && category}
             </p>
           </div>
@@ -133,7 +133,7 @@ export default function EventsPage() {
                 <Link
                   key={event.id}
                   href={`/event/${event.slug}`}
-                  className="group bg-white rounded-3xl overflow-hidden border border-gray-200 hover:border-orange-300 hover:shadow-2xl hover:-translate-y-1 transition-all"
+                  className="group bg-white dark:bg-gray-950 rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-orange-300 hover:shadow-2xl hover:-translate-y-1 transition-all"
                 >
                   {/* Image area */}
                   <div className="relative aspect-[16/10] bg-gradient-to-br from-orange-300 via-orange-400 to-orange-500 flex items-center justify-center text-white">
@@ -143,12 +143,12 @@ export default function EventsPage() {
                     {/* Status badge */}
                     <div className="absolute top-4 left-4">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black ${statusLabels[event.status].bg} ${statusLabels[event.status].text_color}`}>
-                        {event.status === 'live' && <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+                        {event.status === 'live' && <span className="w-1.5 h-1.5 bg-white dark:bg-gray-950 rounded-full animate-pulse" />}
                         {statusLabels[event.status].text}
                       </span>
                     </div>
                     {/* Time badge */}
-                    <div className="absolute top-4 right-4 bg-white/95 backdrop-blur text-gray-900 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1">
+                    <div className="absolute top-4 right-4 bg-white dark:bg-gray-950/95 backdrop-blur text-gray-900 dark:text-white px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1">
                       <ClockIcon size={14} stroke={2} />
                       {event.date} {event.time}
                     </div>
@@ -163,13 +163,13 @@ export default function EventsPage() {
                     </div>
 
                     {/* Name */}
-                    <h3 className="text-xl font-black text-gray-900 mb-1.5">{event.name}</h3>
-                    <p className="text-xs text-gray-500 mb-4">出店者: {event.seller}</p>
+                    <h3 className="text-xl font-black text-gray-900 dark:text-white mb-1.5">{event.name}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">出店者: {event.seller}</p>
 
                     {/* Tags */}
                     <div className="flex gap-1.5 flex-wrap mb-5">
                       {event.tags.map((tag) => (
-                        <span key={tag} className="text-xs bg-orange-50 text-orange-700 px-3 py-1 rounded-full font-bold">
+                        <span key={tag} className="text-xs bg-orange-50 dark:bg-gray-900 text-orange-700 px-3 py-1 rounded-full font-bold">
                           #{tag}
                         </span>
                       ))}
@@ -191,8 +191,8 @@ export default function EventsPage() {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
-                          残り <span className="font-bold text-gray-900">{event.max - event.reserved}名</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          残り <span className="font-bold text-gray-900 dark:text-white">{event.max - event.reserved}名</span>
                         </span>
                         <span className="inline-flex items-center gap-1.5 text-orange-600 font-black text-sm group-hover:gap-3 transition-all">
                           {event.status === 'live' ? '入室する' : '予約する'}
@@ -205,15 +205,15 @@ export default function EventsPage() {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-3xl border border-gray-200 py-20 sm:py-24 text-center">
+            <div className="bg-white dark:bg-gray-950 rounded-3xl border border-gray-200 dark:border-gray-800 py-20 sm:py-24 text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 text-gray-400 rounded-full mb-6">
                 <SearchIcon size={40} stroke={1.5} />
               </div>
-              <p className="text-base sm:text-lg font-bold text-gray-900 mb-2">該当するイベントが見つかりません</p>
-              <p className="text-sm text-gray-500 mb-8">条件を変更して再度お試しください</p>
+              <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-2">該当するイベントが見つかりません</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">条件を変更して再度お試しください</p>
               <button
                 onClick={() => { setRegion('全国'); setCategory('すべて'); }}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-full font-bold text-sm hover:bg-orange-600 transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-orange-50 dark:bg-gray-9000 text-white rounded-full font-bold text-sm hover:bg-orange-600 transition-all"
               >
                 <RefreshIcon size={16} />
                 フィルターをリセット

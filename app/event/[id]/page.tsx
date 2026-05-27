@@ -49,11 +49,11 @@ export default function EventDetailPage() {
   const remainingSlots = event.maxReservations - event.currentReservations;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
 
       {/* Back Link */}
-      <div className="bg-white border-b border-gray-200 sticky top-16 lg:top-20 z-10">
+      <div className="bg-white border-b border-gray-200 dark:border-gray-800 sticky top-16 lg:top-20 z-10">
         <div className="container-main py-4">
           <Link
             href="/events"
@@ -100,7 +100,7 @@ export default function EventDetailPage() {
               </p>
               <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                 {event.tags.map((tag) => (
-                  <span key={tag} className="px-4 py-1.5 bg-orange-50 text-orange-700 rounded-full text-xs font-bold">
+                  <span key={tag} className="px-4 py-1.5 bg-orange-50 dark:bg-gray-900 text-orange-700 rounded-full text-xs font-bold">
                     #{tag}
                   </span>
                 ))}
@@ -111,9 +111,9 @@ export default function EventDetailPage() {
       </section>
 
       {/* Event Info Card */}
-      <section className="bg-gray-50">
+      <section className="bg-gray-50 dark:bg-gray-900">
         <div className="container-main py-8 sm:py-10">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 lg:p-10 shadow-md border border-gray-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 lg:p-10 shadow-md border border-gray-200 dark:border-gray-800">
             <div className="grid grid-cols-12 gap-6 lg:gap-8">
               <div className="col-span-12 sm:col-span-6">
                 <div className="flex items-center gap-2 text-orange-600 mb-2">
@@ -126,7 +126,7 @@ export default function EventDetailPage() {
                 <p className="text-sm text-gray-600">{event.date}</p>
               </div>
 
-              <div className="col-span-12 sm:col-span-6 sm:border-l sm:border-gray-200 sm:pl-8">
+              <div className="col-span-12 sm:col-span-6 sm:border-l sm:border-gray-200 dark:border-gray-800 sm:pl-8">
                 <div className="flex items-center gap-2 text-orange-600 mb-2">
                   <UserIcon size={16} stroke={2} />
                   <span className="text-xs font-black tracking-widest uppercase">予約状況</span>
@@ -135,7 +135,7 @@ export default function EventDetailPage() {
                   <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-orange-600">
                     {event.currentReservations}
                   </span>
-                  <span className="text-base text-gray-500">/ {event.maxReservations}名</span>
+                  <span className="text-base text-gray-500 dark:text-gray-400">/ {event.maxReservations}名</span>
                 </div>
                 <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden mb-3">
                   <div
@@ -169,7 +169,7 @@ export default function EventDetailPage() {
             {event.products.map((product) => (
               <div
                 key={product.id}
-                className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-orange-300 hover:shadow-lg transition-all"
+                className="bg-white border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden hover:border-orange-300 hover:shadow-lg transition-all"
               >
                 <div className="aspect-square bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 flex items-center justify-center text-orange-600">
                   <ProductIcon type={product.icon} size={56} stroke={1.5} />
@@ -189,7 +189,7 @@ export default function EventDetailPage() {
       </section>
 
       {/* How it Works */}
-      <section className="bg-orange-50">
+      <section className="bg-orange-50 dark:bg-gray-900">
         <div className="container-main py-10 sm:py-12">
           <h3 className="text-lg sm:text-xl lg:text-2xl font-black text-gray-900 mb-8 text-center">
             予約から購入までの流れ
@@ -201,7 +201,7 @@ export default function EventDetailPage() {
               { num: '03', Icon: ChatIcon, title: 'チャット', desc: '1対1で接客' },
               { num: '04', Icon: BagIcon, title: '購入', desc: '商品を購入' },
             ].map((step) => (
-              <div key={step.num} className="bg-white rounded-2xl p-5 sm:p-6 text-center border border-orange-100">
+              <div key={step.num} className="bg-white rounded-2xl p-5 sm:p-6 text-center border border-orange-100 dark:border-gray-800">
                 <div className="inline-flex items-center justify-center w-12 h-12 bg-orange-100 rounded-xl mb-3 text-orange-600">
                   <step.Icon size={24} stroke={1.5} />
                 </div>
@@ -215,7 +215,7 @@ export default function EventDetailPage() {
       </section>
 
       {/* Sticky CTA Button */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 shadow-2xl z-20">
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 dark:border-gray-800 shadow-2xl z-20">
         <div className="container-main py-5 sm:py-6">
           <button
             onClick={handleReserve}
@@ -233,7 +233,7 @@ export default function EventDetailPage() {
               <>このお店を予約する <ArrowRightIcon size={20} stroke={2.5} /></>
             )}
           </button>
-          <p className="text-center text-xs text-gray-500 mt-2.5">
+          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2.5">
             予約後、整理券番号が発行されます
           </p>
         </div>

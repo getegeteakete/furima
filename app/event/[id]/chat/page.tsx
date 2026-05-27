@@ -257,7 +257,7 @@ export default function ChatRoomPage() {
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[10px] font-bold text-orange-600 bg-white px-2 py-0.5 rounded-full">選択中</span>
                 {products.find((p) => p.id === selectedProduct.id)?.soldOut && (
-                  <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-red-600 bg-red-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
                     SOLD OUT
                   </span>
                 )}
@@ -293,7 +293,7 @@ export default function ChatRoomPage() {
                 className={`relative rounded-xl overflow-hidden border-2 transition-all ${
                   selectedProduct.id === product.id
                     ? 'border-orange-500 ring-2 ring-orange-200'
-                    : 'border-gray-200'
+                    : 'border-gray-200 dark:border-gray-800'
                 } ${product.soldOut ? 'opacity-60 cursor-not-allowed' : 'hover:border-orange-400 active:scale-95'}`}
               >
                 <div className={`aspect-square flex items-center justify-center relative ${

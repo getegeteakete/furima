@@ -80,15 +80,15 @@ const HOW_STEPS = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-gray-950 overflow-x-hidden">
       <Header />
 
       {/* ===== HERO ===== */}
-      <section className="relative bg-white overflow-hidden">
+      <section className="relative bg-white dark:bg-gray-950 overflow-hidden">
         <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-32 -left-32 w-96 h-96 bg-orange-500 rounded-full opacity-90" />
+          <div className="absolute -top-32 -left-32 w-96 h-96 bg-orange-50 dark:bg-gray-9000 rounded-full opacity-90" />
           <div className="absolute top-24 left-24 w-48 h-48 bg-orange-400 rounded-full opacity-50" />
-          <div className="absolute -top-20 -right-32 w-96 h-96 bg-orange-500 rounded-full opacity-80" />
+          <div className="absolute -top-20 -right-32 w-96 h-96 bg-orange-50 dark:bg-gray-9000 rounded-full opacity-80" />
         </div>
 
         <div className="relative container-main section-spacing-sm">
@@ -103,7 +103,7 @@ export default function Home() {
                 <span className="text-orange-600">フリマを</span><br />
                 楽しもう
               </h1>
-              <p className="text-sm sm:text-base lg:text-lg text-gray-700 mb-10 leading-relaxed">
+              <p className="text-sm sm:text-base lg:text-lg text-gray-700 dark:text-gray-300 mb-10 leading-relaxed">
                 時間限定のチャット接客型フリマイベント。<br />
                 出店者と直接会話しながら、特別なお買い物体験を。
               </p>
@@ -116,15 +116,15 @@ export default function Home() {
                 </Link>
                 <Link
                   href="/seller"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-orange-600 border-2 border-orange-500 rounded-full font-bold text-sm sm:text-base hover:bg-orange-50 transition-all active:scale-95"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white dark:bg-gray-950 text-orange-600 border-2 border-orange-500 rounded-full font-bold text-sm sm:text-base hover:bg-orange-50 dark:bg-gray-900 transition-all active:scale-95"
                 >
                   出店してみる
                 </Link>
               </div>
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 text-sm justify-center lg:justify-start">
                 {['47都道府県対応', '出店料1,200円〜', '登録無料'].map((label) => (
-                  <div key={label} className="flex items-center gap-2 text-gray-700">
-                    <span className="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 flex-shrink-0">
+                  <div key={label} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <span className="w-6 h-6 rounded-full bg-orange-100 dark:bg-gray-800 flex items-center justify-center text-orange-600 flex-shrink-0">
                       <CheckIcon size={14} stroke={3} />
                     </span>
                     <span className="text-xs sm:text-sm font-medium">{label}</span>
@@ -138,24 +138,24 @@ export default function Home() {
               <div className="relative animate-float">
                 <div className="relative w-56 sm:w-64 lg:w-72 h-[460px] sm:h-[520px] lg:h-[580px] bg-gray-900 rounded-[2.5rem] lg:rounded-[3rem] p-3 shadow-2xl">
                   <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-6 bg-gray-900 rounded-b-2xl z-10" />
-                  <div className="w-full h-full bg-white rounded-[2rem] lg:rounded-[2.5rem] overflow-hidden flex flex-col">
-                    <div className="bg-orange-500 px-4 pt-7 pb-3 flex items-center justify-between">
+                  <div className="w-full h-full bg-white dark:bg-gray-950 rounded-[2rem] lg:rounded-[2.5rem] overflow-hidden flex flex-col">
+                    <div className="bg-orange-50 dark:bg-gray-9000 px-4 pt-7 pb-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center text-orange-600 font-black text-xs">F</div>
+                        <div className="w-7 h-7 bg-white dark:bg-gray-950 rounded-full flex items-center justify-center text-orange-600 font-black text-xs">F</div>
                         <p className="text-white font-bold text-xs">フリマライブ</p>
                       </div>
                       <ProductIcon type="sparkles" size={14} stroke={2} className="text-white" />
                     </div>
                     <div className="flex-1 bg-gradient-to-b from-orange-50 to-white p-3 space-y-2.5">
-                      <div className="bg-white rounded-xl p-3 shadow-sm border border-orange-100">
+                      <div className="bg-white dark:bg-gray-950 rounded-xl p-3 shadow-sm border border-orange-100 dark:border-gray-800">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-xs font-bold text-orange-600">20:00 開催中</span>
                           <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500 text-white rounded-full text-[9px] font-bold">
-                            <span className="w-1 h-1 bg-white rounded-full animate-pulse" />LIVE
+                            <span className="w-1 h-1 bg-white dark:bg-gray-950 rounded-full animate-pulse" />LIVE
                           </span>
                         </div>
-                        <p className="text-sm font-black text-gray-900">mina.craft</p>
-                        <p className="text-xs text-gray-500 mb-2">滋賀</p>
+                        <p className="text-sm font-black text-gray-900 dark:text-white">mina.craft</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">滋賀</p>
                         <div className="aspect-square bg-gradient-to-br from-orange-200 to-orange-300 rounded-lg flex items-center justify-center text-orange-700">
                           <DiamondIcon size={48} stroke={1.5} />
                         </div>
@@ -177,7 +177,7 @@ export default function Home() {
       </section>
 
       {/* ===== SHOPPING NOW ===== */}
-      <section className="relative bg-orange-500 text-white overflow-hidden">
+      <section className="relative bg-orange-50 dark:bg-gray-9000 text-white overflow-hidden">
         <div aria-hidden className="absolute inset-0">
           <div className="absolute top-12 right-8 w-40 h-40 bg-orange-400 rounded-full opacity-40" />
           <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-orange-300 rounded-full opacity-30" />
@@ -197,18 +197,18 @@ export default function Home() {
               <div key={idx} className="col-span-12 sm:col-span-6 lg:col-span-4">
                 <Link
                   href={`/event/${event.slug}`}
-                  className="block bg-white/10 backdrop-blur border border-white/20 rounded-3xl p-7 lg:p-8 text-left hover:bg-white/20 hover:scale-105 transition-all h-full"
+                  className="block bg-white dark:bg-gray-950/10 backdrop-blur border border-white/20 rounded-3xl p-7 lg:p-8 text-left hover:bg-white dark:bg-gray-950/20 hover:scale-105 transition-all h-full"
                 >
                   <div className="flex items-center justify-between mb-5">
                     <span className="text-sm font-bold">{event.time} 開始</span>
                     {event.live && (
                       <span className="flex items-center gap-1 px-3 py-1 bg-red-500 rounded-full text-xs font-bold">
-                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                        <span className="w-1.5 h-1.5 bg-white dark:bg-gray-950 rounded-full animate-pulse" />
                         LIVE
                       </span>
                     )}
                   </div>
-                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mb-4">
+                  <div className="w-14 h-14 bg-white dark:bg-gray-950/20 rounded-2xl flex items-center justify-center mb-4">
                     <ProductIcon type={event.icon} size={28} stroke={1.5} />
                   </div>
                   <div className="flex items-center gap-1.5 mb-2">
@@ -218,7 +218,7 @@ export default function Home() {
                   <p className="text-lg font-bold mb-4">{event.name}</p>
                   <div className="flex gap-2 flex-wrap">
                     {event.tags.map((tag) => (
-                      <span key={tag} className="text-xs bg-white/20 px-3 py-1 rounded-full">{tag}</span>
+                      <span key={tag} className="text-xs bg-white dark:bg-gray-950/20 px-3 py-1 rounded-full">{tag}</span>
                     ))}
                   </div>
                 </Link>
@@ -229,7 +229,7 @@ export default function Home() {
           <div className="text-center">
             <Link
               href="/events"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-orange-600 rounded-full font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-950 text-orange-600 rounded-full font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
             >
               すべてのイベントを見る <ArrowRightIcon size={18} stroke={2.5} />
             </Link>
@@ -250,7 +250,7 @@ export default function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5 sm:gap-6 lg:gap-8 max-w-5xl mx-auto">
             {ITEM_CATEGORIES.map((item) => (
               <div key={item.label} className="group">
-                <div className="aspect-square bg-white rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform cursor-pointer text-orange-600">
+                <div className="aspect-square bg-white dark:bg-gray-950 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform cursor-pointer text-orange-600">
                   <item.Icon size={40} stroke={1.5} />
                 </div>
                 <p className="text-xs sm:text-sm font-bold text-white/90">{item.label}</p>
@@ -281,7 +281,7 @@ export default function Home() {
               </p>
               <Link
                 href="/seller"
-                className="inline-flex items-center gap-2 px-8 py-4 bg-white text-orange-600 rounded-full font-bold text-sm sm:text-base shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-white dark:bg-gray-950 text-orange-600 rounded-full font-bold text-sm sm:text-base shadow-lg hover:shadow-xl hover:scale-105 transition-all"
               >
                 出店してみる <ArrowRightIcon size={18} stroke={2.5} />
               </Link>
@@ -290,18 +290,18 @@ export default function Home() {
             <div className="col-span-12 lg:col-span-5 flex justify-center">
               <div className="w-48 sm:w-56 lg:w-64 h-[380px] sm:h-[440px] lg:h-[500px] bg-gray-900 rounded-[2.5rem] lg:rounded-[3rem] p-3 shadow-2xl">
                 <div className="absolute top-3 left-1/2 -translate-x-1/2 w-24 h-5 bg-gray-900 rounded-b-2xl z-10" />
-                <div className="w-full h-full bg-white rounded-[2rem] overflow-hidden flex flex-col">
+                <div className="w-full h-full bg-white dark:bg-gray-950 rounded-[2rem] overflow-hidden flex flex-col">
                   <div className="bg-gray-900 text-white px-4 pt-7 pb-2 flex items-center justify-between">
                     <p className="text-xs font-bold">mina.craft</p>
                     <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500 rounded-full text-[9px] font-bold">
-                      <span className="w-1 h-1 bg-white rounded-full animate-pulse" />LIVE
+                      <span className="w-1 h-1 bg-white dark:bg-gray-950 rounded-full animate-pulse" />LIVE
                     </span>
                   </div>
                   <div className="aspect-square bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-orange-800">
                     <DiamondIcon size={80} stroke={1.5} />
                   </div>
-                  <div className="bg-white px-4 py-3 border-b border-gray-100">
-                    <p className="text-xs font-black text-gray-900">レジンアクセサリー</p>
+                  <div className="bg-white dark:bg-gray-950 px-4 py-3 border-b border-gray-100">
+                    <p className="text-xs font-black text-gray-900 dark:text-white">レジンアクセサリー</p>
                     <p className="text-orange-600 font-black text-sm mt-1">¥2,800</p>
                   </div>
                 </div>
@@ -316,29 +316,29 @@ export default function Home() {
         <div className="relative container-main section-spacing-sm">
           <div className="text-center mb-12 lg:mb-16">
             <p className="text-xs sm:text-sm lg:text-base font-bold text-orange-700 mb-4 tracking-widest uppercase">FAQ</p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900">よくある質問</h2>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white">よくある質問</h2>
           </div>
 
           <div className="grid grid-cols-12 gap-6 lg:gap-8">
             {FAQ_POINTS.map((point, idx) => (
               <div key={idx} className="col-span-12 sm:col-span-6 lg:col-span-4">
-                <div className="bg-white rounded-3xl p-7 sm:p-8 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all h-full flex flex-col">
+                <div className="bg-white dark:bg-gray-950 rounded-3xl p-7 sm:p-8 shadow-lg hover:shadow-xl hover:-translate-y-2 transition-all h-full flex flex-col">
                   <div className="inline-block w-fit px-4 py-1.5 bg-orange-600 text-white text-xs font-black rounded-full mb-5">
                     {point.point}
                   </div>
-                  <h3 className="text-lg sm:text-xl font-black text-gray-900 mb-5 leading-snug">
+                  <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white mb-5 leading-snug">
                     {point.title}
                   </h3>
 
-                  <div className="bg-orange-50 rounded-2xl p-5 lg:p-6 mb-5 text-center flex-shrink-0">
+                  <div className="bg-orange-50 dark:bg-gray-900 rounded-2xl p-5 lg:p-6 mb-5 text-center flex-shrink-0">
                     <p className="text-xs lg:text-sm text-orange-700 font-bold mb-2">{point.badge}</p>
                     <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-orange-600 mb-3">{point.value}</p>
-                    <div className="inline-flex items-center justify-center w-10 h-10 bg-orange-100 rounded-xl text-orange-600">
+                    <div className="inline-flex items-center justify-center w-10 h-10 bg-orange-100 dark:bg-gray-800 rounded-xl text-orange-600">
                       <point.Icon size={20} stroke={1.5} />
                     </div>
                   </div>
 
-                  <p className="text-sm lg:text-base text-gray-700 leading-relaxed flex-1">
+                  <p className="text-sm lg:text-base text-gray-700 dark:text-gray-300 leading-relaxed flex-1">
                     {point.desc}
                   </p>
                 </div>
@@ -349,11 +349,11 @@ export default function Home() {
       </section>
 
       {/* ===== HOW TO USE ===== */}
-      <section className="relative bg-white overflow-hidden">
+      <section className="relative bg-white dark:bg-gray-950 overflow-hidden">
         <div className="relative container-main section-spacing-sm">
           <div className="text-center mb-12 lg:mb-16">
             <p className="text-xs sm:text-sm lg:text-base font-bold text-orange-500 mb-4 tracking-widest uppercase">HOW TO USE</p>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white">
               <span className="text-orange-600">3STEP</span>で簡単スタート
             </h2>
           </div>
@@ -365,12 +365,12 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white shadow-lg">
                     <item.Icon size={48} stroke={1.5} />
                   </div>
-                  <div className="absolute -top-2 -right-2 w-11 h-11 lg:w-12 lg:h-12 bg-yellow-400 rounded-full flex items-center justify-center text-xs lg:text-sm font-black text-gray-900 shadow-md">
+                  <div className="absolute -top-2 -right-2 w-11 h-11 lg:w-12 lg:h-12 bg-yellow-400 rounded-full flex items-center justify-center text-xs lg:text-sm font-black text-gray-900 dark:text-white shadow-md">
                     {item.step}
                   </div>
                 </div>
-                <h3 className="text-lg lg:text-xl font-black text-gray-900 mb-4">{item.title}</h3>
-                <p className="text-sm lg:text-base text-gray-700 leading-relaxed">{item.desc}</p>
+                <h3 className="text-lg lg:text-xl font-black text-gray-900 dark:text-white mb-4">{item.title}</h3>
+                <p className="text-sm lg:text-base text-gray-700 dark:text-gray-300 leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -396,7 +396,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-white text-orange-600 rounded-full font-bold text-sm sm:text-base shadow-xl hover:scale-105 transition-all"
+                className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-white dark:bg-gray-950 text-orange-600 rounded-full font-bold text-sm sm:text-base shadow-xl hover:scale-105 transition-all"
               >
                 無料で会員登録 <ArrowRightIcon size={18} stroke={2.5} />
               </Link>

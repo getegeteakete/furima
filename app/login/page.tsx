@@ -10,9 +10,9 @@ export default function LoginPage() {
 
       <main className="flex-1 flex items-center justify-center py-12 sm:py-16 lg:py-20">
         <div className="w-full max-w-md mx-auto px-4 sm:px-6">
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+          <div className="bg-white dark:bg-gray-950 rounded-3xl shadow-2xl overflow-hidden">
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 px-8 py-8 sm:py-10 text-white text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur rounded-2xl mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white dark:bg-gray-950/20 backdrop-blur rounded-2xl mb-4">
                 <LoginIcon size={32} stroke={1.5} />
               </div>
               <h1 className="text-2xl sm:text-3xl font-black mb-2">おかえりなさい</h1>
@@ -21,19 +21,19 @@ export default function LoginPage() {
 
             <div className="px-6 py-7 sm:py-8 space-y-5">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-2">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">
                   メールアドレス
                 </label>
                 <input
                   type="email"
                   placeholder="your@email.com"
-                  className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-bold text-gray-700">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
                     パスワード
                   </label>
                   <Link href="#" className="text-xs text-orange-600 font-bold hover:underline">
@@ -43,7 +43,7 @@ export default function LoginPage() {
                 <input
                   type="password"
                   placeholder="パスワードを入力"
-                  className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
 
@@ -69,7 +69,7 @@ export default function LoginPage() {
                   <LineIcon size={20} stroke={1.5} />
                   LINEでログイン
                 </button>
-                <button className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white border-2 border-gray-200 text-gray-700 rounded-full font-bold text-sm hover:border-gray-300 transition-all">
+                <button className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white dark:bg-gray-950 border-2 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 rounded-full font-bold text-sm hover:border-gray-300 transition-all">
                   <GoogleIcon size={20} stroke={1.5} />
                   Googleでログイン
                 </button>

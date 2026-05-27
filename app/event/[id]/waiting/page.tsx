@@ -84,7 +84,7 @@ export default function WaitingPage() {
             <div className="flex-1 min-w-0">
               <p className="text-xs text-orange-600 font-bold mb-1">{event.region}</p>
               <p className="text-base sm:text-lg font-black text-gray-900 truncate">{event.name}</p>
-              <p className="text-xs text-gray-500">{event.startTime} - {event.endTime}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{event.startTime} - {event.endTime}</p>
             </div>
           </div>
 
@@ -134,25 +134,25 @@ export default function WaitingPage() {
                   <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-orange-50 rounded-full" />
                   <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-orange-50 rounded-full" />
 
-                  <p className="text-xs text-gray-500 mb-3 font-bold tracking-widest uppercase">Ticket No.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 font-bold tracking-widest uppercase">Ticket No.</p>
                   <div className="text-7xl sm:text-8xl font-black text-orange-600 mb-3 leading-none">
                     #{String(ticketNumber).padStart(2, '0')}
                   </div>
-                  <p className="text-sm text-gray-500 mt-4">{event.name} - {event.date}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">{event.name} - {event.date}</p>
                 </div>
 
-                <div className="border-t-2 border-dashed border-gray-200 mx-6" />
+                <div className="border-t-2 border-dashed border-gray-200 dark:border-gray-800 mx-6" />
 
                 <div className="px-6 py-6 sm:px-8 sm:py-8">
                   <div className="flex items-center justify-between mb-5">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">現在 接客中</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">現在 接客中</p>
                       <p className="text-2xl font-black text-gray-900">
                         #{String(currentServing).padStart(2, '0')}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-gray-500 mb-1">あなたまで</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">あなたまで</p>
                       <p className="text-2xl font-black text-orange-600">
                         {waitingAhead}名待ち
                       </p>
@@ -179,9 +179,9 @@ export default function WaitingPage() {
                     <HourglassIcon size={24} stroke={1.5} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 mb-0.5">次の方への引き継ぎまで</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">次の方への引き継ぎまで</p>
                     <p className="text-lg font-black text-orange-600">
-                      {secondsLeft}秒 <span className="text-xs font-medium text-gray-500">(デモ)</span>
+                      {secondsLeft}秒 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">(デモ)</span>
                     </p>
                   </div>
                 </div>
