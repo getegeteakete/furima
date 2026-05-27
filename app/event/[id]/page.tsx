@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '../../components/Header';
 import {
@@ -23,6 +23,31 @@ export default function EventDetailPage() {
   const eventId = params.id as string;
   const event = getEventById(eventId);
   const [isReserving, setIsReserving] = useState(false);
+  const [countdownTime, setCountdownTime] = useState<number | null>(null);
+
+  // カウントダウンタイマー
+  useEffect(() => {
+    if (event?.status !== 'upcoming') return;
+
+    const interval = setInterval(() => {
+      setCountdownTime((prev) => {
+        if (prev === null) return 1800; // 30分
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [event?.status]);
+
+  const formatCountdown = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   if (!event) {
     return (
@@ -44,6 +69,14 @@ export default function EventDetailPage() {
       router.push(`/event/${eventId}/waiting`);
     }, 800);
   };
+
+  // ステータスに応じた商品表示
+  const displayProducts = 
+    event.status === 'live' 
+      ? event.products 
+      : event.status === 'upcoming'
+      ? event.products.slice(0, 5) // ピックアップ5点のみ
+      : []; // 終了時は非公開
 
   const reservationProgress = (event.currentReservations / event.maxReservations) * 100;
   const remainingSlots = event.maxReservations - event.currentReservations;
@@ -91,10 +124,29 @@ export default function EventDetailPage() {
                 <span className="text-sm font-bold">{event.region}</span>
                 <span className="text-gray-300">|</span>
                 <span className="text-sm text-gray-600">{event.category}</span>
+                {event.status === 'upcoming' && (
+                  <>
+                    <span className="text-gray-300">|</span>
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-black">
+                      COMING SOON
+                    </span>
+                  </>
+                )}
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
                 {event.name}
               </h1>
+
+              {/* Countdown */}
+              {event.status === 'upcoming' && countdownTime !== null && (
+                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg inline-block">
+                  <p className="text-xs text-orange-700 font-bold mb-1">開催まで</p>
+                  <p className="text-2xl font-black text-orange-600 font-mono">
+                    {formatCountdown(countdownTime)}
+                  </p>
+                </div>
+              )}
+
               <p className="text-sm sm:text-base text-gray-700 mb-5 leading-relaxed">
                 {event.description}
               </p>
@@ -152,41 +204,65 @@ export default function EventDetailPage() {
         </div>
       </section>
 
-      {/* Pickup Products */}
-      <section className="bg-white">
-        <div className="container-main py-10 sm:py-14 lg:py-16">
-          <div className="text-center mb-10 lg:mb-12">
-            <p className="text-xs sm:text-sm font-bold text-orange-600 mb-3 tracking-widest uppercase">Pickup Items</p>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-3">
-              ピックアップ商品 5品
+      {/* Products Section */}
+      {event.status === 'ended' ? (
+        <section className="bg-white">
+          <div className="container-main py-16 sm:py-20 text-center">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-4">
+              このイベントは終了しました
             </h2>
-            <p className="text-sm sm:text-base text-gray-600">
-              {event.status === 'live' ? '全商品はチャット内でご確認いただけます' : 'イベント開催時に全商品公開'}
+            <p className="text-gray-600 mb-8">
+              他のイベントをチェックしてみてください
             </p>
+            <Link
+              href="/events"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-bold hover:shadow-lg transition-all"
+            >
+              イベント一覧へ <ArrowRightIcon size={18} stroke={2} />
+            </Link>
           </div>
+        </section>
+      ) : (
+        <section className="bg-white">
+          <div className="container-main py-10 sm:py-14 lg:py-16">
+            <div className="text-center mb-10 lg:mb-12">
+              <p className="text-xs sm:text-sm font-bold text-orange-600 mb-3 tracking-widest uppercase">
+                {event.status === 'upcoming' ? 'ピックアップアイテム' : 'すべての商品'}
+              </p>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-3">
+                {event.status === 'upcoming' ? 'ピックアップ商品 5品' : `${event.products.length}個の商品`}
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600">
+                {event.status === 'upcoming' 
+                  ? 'イベント開催時に全商品が公開されます'
+                  : 'チャット内で詳しくお問い合わせください'
+                }
+              </p>
+            </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-5 lg:gap-6">
-            {event.products.map((product) => (
-              <div
-                key={product.id}
-                className="bg-white border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden hover:border-orange-300 hover:shadow-lg transition-all"
-              >
-                <div className="aspect-square bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 flex items-center justify-center text-orange-600">
-                  <ProductIcon type={product.icon} size={56} stroke={1.5} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-5 lg:gap-6">
+              {displayProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="bg-white border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden hover:border-orange-300 hover:shadow-lg transition-all"
+                >
+                  <div className="aspect-square bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 flex items-center justify-center text-orange-600">
+                    <ProductIcon type={product.icon} size={56} stroke={1.5} />
+                  </div>
+                  <div className="p-4 sm:p-5">
+                    <p className="text-sm font-black text-gray-900 mb-2 line-clamp-1">
+                      {product.name}
+                    </p>
+                    <p className="text-orange-600 font-black text-base sm:text-lg">
+                      ¥{product.price.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-                <div className="p-4 sm:p-5">
-                  <p className="text-sm font-black text-gray-900 mb-2 line-clamp-1">
-                    {product.name}
-                  </p>
-                  <p className="text-orange-600 font-black text-base sm:text-lg">
-                    ¥{product.price.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* How it Works */}
       <section className="bg-orange-50 dark:bg-gray-900">
