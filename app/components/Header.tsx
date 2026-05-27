@@ -5,7 +5,7 @@ import { useState } from 'react';
 import SkipLink from './SkipLink';
 import ThemeToggle from './ThemeToggle';
 import NotificationDrawer from './NotificationDrawer';
-import { UserIcon, BellIcon } from './Icons';
+import { UserIcon, BellIcon, SearchIcon } from './Icons';
 import { useNotifications } from './NotificationContext';
 
 export default function Header() {
@@ -41,6 +41,14 @@ export default function Header() {
             {/* CTA */}
             <div className="hidden lg:flex items-center gap-3">
               <ThemeToggle />
+              <Link href="/search">
+                <button
+                  className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  aria-label="Search"
+                >
+                  <SearchIcon size={20} stroke={1.5} />
+                </button>
+              </Link>
               <button
                 onClick={() => setNotificationOpen(!notificationOpen)}
                 className="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-50 dark:bg-gray-800 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-gray-700 transition-colors"
@@ -105,6 +113,7 @@ export default function Header() {
             <Link href="/mypage" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95">マイページ</Link>
             <Link href="/seller" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95">出店者ダッシュボード</Link>
             <Link href="/about" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95">使い方</Link>
+            <Link href="/search" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95">検索</Link>
             <div className="pt-4 px-5 border-t border-orange-100 dark:border-gray-800 mt-4 space-y-3">
               <Link href="/login" onClick={() => setOpen(false)} className="block py-4 px-5 text-center text-base font-bold text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 rounded-full hover:border-orange-300 dark:hover:border-orange-500 transition-colors active:scale-95">
                 ログイン
