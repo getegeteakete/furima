@@ -44,8 +44,8 @@ export default function Footer() {
             <ul className="space-y-3">
               <li><a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">よくある質問</a></li>
               <li><a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">お問い合わせ</a></li>
-              <li><a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">利用規約</a></li>
-              <li><a href="#" className="text-sm text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">プライバシーポリシー</a></li>
+              <li><Link href="/terms" className="text-sm text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">利用規約</Link></li>
+              <li><Link href="/privacy" className="text-sm text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">プライバシーポリシー</Link></li>
             </ul>
           </div>
         </div>
