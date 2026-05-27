@@ -86,24 +86,24 @@ export default function Home() {
       {/* ===== HERO ===== */}
       <section className="relative bg-white dark:bg-gray-950 overflow-hidden">
         <div aria-hidden className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-32 -left-32 w-96 h-96 bg-orange-50 dark:bg-gray-9000 rounded-full opacity-90" />
-          <div className="absolute top-24 left-24 w-48 h-48 bg-orange-400 rounded-full opacity-50" />
-          <div className="absolute -top-20 -right-32 w-96 h-96 bg-orange-50 dark:bg-gray-9000 rounded-full opacity-80" />
+          <div className="absolute -top-32 -left-32 w-96 h-96 bg-orange-100 dark:bg-gray-9000 rounded-full opacity-60" />
+          <div className="absolute top-24 left-24 w-48 h-48 bg-orange-200 rounded-full opacity-30" />
+          <div className="absolute -top-20 -right-32 w-96 h-96 bg-orange-100 dark:bg-gray-9000 rounded-full opacity-50" />
         </div>
 
         <div className="relative container-main section-spacing-sm">
           <div className="grid grid-cols-12 gap-8 lg:gap-12 items-center">
             <div className="col-span-12 lg:col-span-6 text-center lg:text-left">
-              <p className="text-xs sm:text-sm lg:text-base font-bold text-orange-500 mb-4 tracking-widest uppercase">
+              <p className="text-xs sm:text-sm lg:text-base font-bold text-orange-600 dark:text-orange-400 mb-4 tracking-widest uppercase">
                 全国対応・誰でも始められる
               </p>
-              <h1 className="text-3xl sm:text-4xl lg:text-6xl font-black leading-tight mb-7">
-                <span className="text-orange-600">話題の</span><br />
+              <h1 className="text-3xl sm:text-4xl lg:text-6xl font-black leading-tight mb-7 text-gray-900 dark:text-white">
+                <span className="text-orange-700 dark:text-orange-400">話題の</span><br />
                 オンライン<br />
-                <span className="text-orange-600">フリマを</span><br />
+                <span className="text-orange-700 dark:text-orange-400">フリマを</span><br />
                 楽しもう
               </h1>
-              <p className="text-sm sm:text-base lg:text-lg text-gray-700 dark:text-gray-300 mb-10 leading-relaxed">
+              <p className="text-sm sm:text-base lg:text-lg text-gray-700 dark:text-gray-300 mb-10 leading-relaxed font-medium">
                 時間限定のチャット接客型フリマイベント。<br />
                 出店者と直接会話しながら、特別なお買い物体験を。
               </p>
@@ -116,18 +116,18 @@ export default function Home() {
                 </Link>
                 <Link
                   href="/seller"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white dark:bg-gray-950 text-orange-600 border-2 border-orange-500 rounded-full font-bold text-sm sm:text-base hover:bg-orange-50 dark:bg-gray-900 transition-all active:scale-95"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white dark:bg-gray-950 text-orange-600 border-2 border-orange-500 rounded-full font-bold text-sm sm:text-base hover:bg-orange-50 dark:hover:bg-gray-900 transition-all active:scale-95"
                 >
                   出店してみる
                 </Link>
               </div>
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 text-sm justify-center lg:justify-start">
                 {['47都道府県対応', '出店料1,200円〜', '登録無料'].map((label) => (
-                  <div key={label} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-                    <span className="w-6 h-6 rounded-full bg-orange-100 dark:bg-gray-800 flex items-center justify-center text-orange-600 flex-shrink-0">
+                  <div key={label} className="flex items-center gap-2 text-gray-700 dark:text-gray-300 font-medium">
+                    <span className="w-6 h-6 rounded-full bg-orange-200 dark:bg-gray-800 flex items-center justify-center text-orange-600 dark:text-orange-400 flex-shrink-0">
                       <CheckIcon size={14} stroke={3} />
                     </span>
-                    <span className="text-xs sm:text-sm font-medium">{label}</span>
+                    <span className="text-xs sm:text-sm">{label}</span>
                   </div>
                 ))}
               </div>
@@ -149,13 +149,13 @@ export default function Home() {
                     <div className="flex-1 bg-gradient-to-b from-orange-50 to-white p-3 space-y-2.5">
                       <div className="bg-white dark:bg-gray-950 rounded-xl p-3 shadow-sm border border-orange-100 dark:border-gray-800">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-orange-600">20:00 開催中</span>
+                          <span className="text-xs font-black text-orange-700 dark:text-orange-500">20:00 開催中</span>
                           <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500 text-white rounded-full text-[9px] font-bold">
                             <span className="w-1 h-1 bg-white dark:bg-gray-950 rounded-full animate-pulse" />LIVE
                           </span>
                         </div>
                         <p className="text-sm font-black text-gray-900 dark:text-white">mina.craft</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">滋賀</p>
+                        <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">滋賀</p>
                         <div className="aspect-square bg-gradient-to-br from-orange-200 to-orange-300 rounded-lg flex items-center justify-center text-orange-700">
                           <DiamondIcon size={48} stroke={1.5} />
                         </div>
