@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
-:root {
-  --color-primary: #1a1a1a;
-  --color-background: #ffffff;
+@theme {
+  --color-brand-orange: #FF6B00;
+  --color-brand-orange-light: #FF8533;
+  --color-brand-orange-lighter: #FFE5D0;
+  --color-brand-yellow: #FFC107;
+  --color-brand-yellow-light: #FFF3CD;
+  --color-brand-yellow-bg: #FFD93D;
+  --font-sans: var(--font-noto-sans-jp), system-ui, sans-serif;
 }
 
 * {
@@ -16,6 +21,46 @@ html {
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  color: #1a1a1a;
+  background: #ffffff;
 }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes bounce-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float { animation: float 4s ease-in-out infinite; }
+.animate-pulse-slow { animation: pulse-slow 3s ease-in-out infinite; }
+.animate-slide-in { animation: slide-in-right 0.5s ease-out; }
+.animate-bounce-soft { animation: bounce-soft 2s ease-in-out infinite; }
+
+/* Custom wave shapes */
+.wave-bottom {
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+}
+
+.wave-top {
+  clip-path: polygon(0 15%, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
