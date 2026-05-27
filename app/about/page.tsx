@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import Breadcrumb from '../components/Breadcrumb';
 import PageHero from '../components/PageHero';
 import {
   UserIcon,
@@ -20,8 +21,9 @@ import {
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-gray-950 flex flex-col">
       <Header />
+      <Breadcrumb items={[{ label: '使い方' }]} />
 
       <PageHero
         badge="How To Use"
