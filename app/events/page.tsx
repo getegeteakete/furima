@@ -99,10 +99,17 @@ export default function EventsPage() {
           {filtered.length}件のイベント
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-          {filtered.map((event) => (
+          {filtered.map((event) => {
+            const slugMap: Record<string, string> = {
+              'mina.craft': 'mina-craft',
+              'kyoto.vintage': 'kyoto-vintage',
+              'osaka.antique': 'osaka-antique',
+            };
+            const eventSlug = slugMap[event.name] || 'mina-craft'; // フォールバック
+            return (
             <Link
               key={event.id}
-              href="/live"
+              href={`/event/${eventSlug}`}
               className="bg-white rounded-3xl shadow-md hover:shadow-2xl hover:-translate-y-1 transition-all overflow-hidden border border-orange-100 group"
             >
               <div className="relative aspect-[16/9] bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-7xl">
@@ -148,7 +155,8 @@ export default function EventsPage() {
                 </div>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
         {filtered.length === 0 && (
           <div className="text-center py-20">

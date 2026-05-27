@@ -92,13 +92,13 @@ export default function Home() {
 
             <div className="grid grid-cols-12 gap-5 sm:gap-6 lg:gap-8 mb-10 sm:mb-12 lg:mb-16">
               {[
-                { time: '20:00', region: '滋賀', name: 'mina.craft', tags: ['ハンドメイド', 'アクセ'], live: true },
-                { time: '20:15', region: '京都', name: 'kyoto.vintage', tags: ['古着', 'レトロ'], live: false },
-                { time: '20:30', region: '大阪', name: 'osaka.antique', tags: ['雑貨', '骨董'], live: false },
+                { slug: 'mina-craft', time: '20:00', region: '滋賀', name: 'mina.craft', tags: ['ハンドメイド', 'アクセ'], live: true },
+                { slug: 'kyoto-vintage', time: '20:15', region: '京都', name: 'kyoto.vintage', tags: ['古着', 'レトロ'], live: false },
+                { slug: 'osaka-antique', time: '20:30', region: '大阪', name: 'osaka.antique', tags: ['雑貨', '骨董'], live: false },
               ].map((event, idx) => (
                 <div key={idx} className="col-span-12 sm:col-span-6 lg:col-span-4">
                   <Link
-                    href="/live"
+                    href={`/event/${event.slug}`}
                     className="block bg-white/10 backdrop-blur border border-white/20 rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 text-left hover:bg-white/20 hover:scale-105 transition-all h-full"
                   >
                     <div className="flex items-center justify-between mb-4 lg:mb-5">
