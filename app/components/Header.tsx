@@ -4,10 +4,14 @@ import Link from 'next/link';
 import { useState } from 'react';
 import SkipLink from './SkipLink';
 import ThemeToggle from './ThemeToggle';
-import { UserIcon } from './Icons';
+import NotificationDrawer from './NotificationDrawer';
+import { UserIcon, BellIcon } from './Icons';
+import { useNotifications } from './NotificationContext';
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const { unreadCount } = useNotifications();
 
   return (
     <>
@@ -37,6 +41,18 @@ export default function Header() {
             {/* CTA */}
             <div className="hidden lg:flex items-center gap-3">
               <ThemeToggle />
+              <button
+                onClick={() => setNotificationOpen(!notificationOpen)}
+                className="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-50 dark:bg-gray-800 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Notifications"
+              >
+                <BellIcon size={20} stroke={1.5} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
               <Link href="/mypage" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-50 dark:bg-gray-800 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-gray-700 transition-colors">
                 <UserIcon size={20} stroke={1.5} />
               </Link>
@@ -54,6 +70,18 @@ export default function Header() {
           {/* Mobile menu button */}
           <div className="lg:hidden flex items-center gap-2">
             <ThemeToggle />
+            <button
+              onClick={() => setNotificationOpen(!notificationOpen)}
+              className="relative inline-flex items-center justify-center p-2.5 rounded-lg hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors w-11 h-11"
+              aria-label="Notifications"
+            >
+              <BellIcon size={20} stroke={1.5} className="text-gray-700 dark:text-gray-300" />
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
             <button
               onClick={() => setOpen(!open)}
               className="p-2.5 rounded-lg hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center w-11 h-11"
@@ -93,6 +121,7 @@ export default function Header() {
         )}
       </div>
     </header>
+    <NotificationDrawer open={notificationOpen} onClose={() => setNotificationOpen(false)} />
     </>
   );
 }
