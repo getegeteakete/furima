@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import SkipLink from './SkipLink';
 import ThemeToggle from './ThemeToggle';
+import { UserIcon } from './Icons';
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -36,6 +37,9 @@ export default function Header() {
             {/* CTA */}
             <div className="hidden lg:flex items-center gap-3">
               <ThemeToggle />
+              <Link href="/mypage" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-50 dark:bg-gray-800 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-gray-700 transition-colors">
+                <UserIcon size={20} stroke={1.5} />
+              </Link>
               <Link href="/login" className="text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
                 ログイン
               </Link>
@@ -70,6 +74,7 @@ export default function Header() {
           <nav className="lg:hidden py-5 sm:py-6 border-t border-orange-100 dark:border-gray-800 space-y-1 animate-slide-in max-h-screen overflow-y-auto">
             <Link href="/" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95">HOME</Link>
             <Link href="/events" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95">イベント一覧</Link>
+            <Link href="/mypage" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95">マイページ</Link>
             <Link href="/seller" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95">出店者ダッシュボード</Link>
             <Link href="/about" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95">使い方</Link>
             <div className="pt-4 px-5 border-t border-orange-100 dark:border-gray-800 mt-4 space-y-3">
