@@ -12,7 +12,9 @@ import {
   ArrowRightIcon,
   SearchIcon,
   RefreshIcon,
+  HeartIcon,
 } from '../components/Icons';
+import { useFavorites } from '../components/FavoritesContext';
 import type { ProductIconType } from '../components/Icons';
 
 const REGIONS = ['全国', '北海道', '東北', '関東', '東京', '中部', '関西', '京都', '大阪', '中国', '四国', '九州', '福岡', '沖縄'];
@@ -56,6 +58,7 @@ const statusLabels: Record<Status, { text: string; bg: string; text_color: strin
 export default function EventsPage() {
   const [region, setRegion] = useState('全国');
   const [category, setCategory] = useState('すべて');
+  const { toggleFavorite, isFavorite } = useFavorites();
 
   const filtered = EVENTS.filter((e) =>
     (region === '全国' || e.region === region) &&
@@ -152,6 +155,22 @@ export default function EventsPage() {
                       <ClockIcon size={14} stroke={2} />
                       {event.date} {event.time}
                     </div>
+                    {/* Favorite button */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleFavorite(event.slug);
+                      }}
+                      className={`absolute bottom-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-110 ${
+                        isFavorite(event.slug)
+                          ? 'bg-red-500 text-white'
+                          : 'bg-white dark:bg-gray-950/95 backdrop-blur text-gray-900 dark:text-white hover:bg-red-100'
+                      }`}
+                      aria-label="Add to favorites"
+                    >
+                      <HeartIcon size={18} stroke={2} className={isFavorite(event.slug) ? 'fill-current' : ''} />
+                    </button>
                   </div>
 
                   {/* Content */}

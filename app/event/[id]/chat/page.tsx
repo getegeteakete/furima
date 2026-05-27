@@ -34,6 +34,39 @@ export default function ChatRoomPage() {
   const [timeLeft, setTimeLeft] = useState(600);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [chatTab, setChatTab] = useState<'private' | 'public'>('private');
+  const [publicMessages, setPublicMessages] = useState<Message[]>([
+    {
+      id: 1,
+      text: 'mina.craft がOPENしました！🎉',
+      sender: 'system',
+      timestamp: '20:00',
+    },
+    {
+      id: 2,
+      text: 'わあ、レジン可愛い〜',
+      sender: 'shop',
+      timestamp: '20:01',
+    },
+    {
+      id: 3,
+      text: 'ネックレスってどのくらい販売されてますか？',
+      sender: 'shop',
+      timestamp: '20:02',
+    },
+    {
+      id: 4,
+      text: '天然石のものは人気ですね',
+      sender: 'shop',
+      timestamp: '20:03',
+    },
+    {
+      id: 5,
+      text: '今日も多くのお客様にご来場いただきありがとうございます！',
+      sender: 'shop',
+      timestamp: '20:04',
+    },
+  ]);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -225,7 +258,7 @@ export default function ChatRoomPage() {
                 <span className="w-1 h-1 bg-white rounded-full animate-pulse" />LIVE
               </span>
             </p>
-            <p className="text-xs opacity-90">マンツーマン接客中</p>
+            <p className="text-xs opacity-90">{chatTab === 'private' ? 'マンツーマン接客中' : '全体チャット'}</p>
           </div>
           <div className={`text-right flex-shrink-0 ${timeLeft < 60 ? 'animate-pulse' : ''}`}>
             <p className="text-[10px] opacity-80">残り時間</p>
@@ -234,6 +267,31 @@ export default function ChatRoomPage() {
             </p>
           </div>
         </div>
+        
+        {/* Chat Tab Navigation */}
+        <div className="px-4 border-t border-white/20 flex gap-2">
+          <button
+            onClick={() => setChatTab('private')}
+            className={`flex-1 py-3 px-4 text-sm font-bold transition-all border-b-2 ${
+              chatTab === 'private'
+                ? 'border-white text-white'
+                : 'border-transparent text-white/70 hover:text-white'
+            }`}
+          >
+            個別チャット
+          </button>
+          <button
+            onClick={() => setChatTab('public')}
+            className={`flex-1 py-3 px-4 text-sm font-bold transition-all border-b-2 ${
+              chatTab === 'public'
+                ? 'border-white text-white'
+                : 'border-transparent text-white/70 hover:text-white'
+            }`}
+          >
+            全体チャット
+          </button>
+        </div>
+        
         <div className="h-1 bg-white/20">
           <div
             className="h-full bg-yellow-300 transition-all duration-1000"
@@ -242,7 +300,8 @@ export default function ChatRoomPage() {
         </div>
       </header>
 
-      {/* TOP HALF: Products */}
+      {/* TOP HALF: Products (個別チャット時のみ) */}
+      {chatTab === 'private' && (
       <div className="flex-1 bg-white border-b-4 border-orange-100 flex flex-col overflow-hidden min-h-0">
         <div className="p-4 bg-gradient-to-br from-orange-50 to-yellow-50 border-b border-orange-100 flex-shrink-0">
           <div className="flex gap-3 items-center">
@@ -323,11 +382,12 @@ export default function ChatRoomPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* BOTTOM HALF: Chat */}
       <div className="flex-1 bg-orange-50 flex flex-col overflow-hidden min-h-0">
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {messages.map((msg) => {
+          {(chatTab === 'private' ? messages : publicMessages).map((msg) => {
             if (msg.sender === 'system') {
               return (
                 <div key={msg.id} className="flex justify-center my-2">
@@ -364,28 +424,37 @@ export default function ChatRoomPage() {
           <div ref={chatEndRef} />
         </div>
 
-        <div className="bg-white border-t border-orange-100 p-3 flex-shrink-0">
-          <div className="flex gap-2 items-end">
-            <div className="flex-1 bg-gray-100 rounded-2xl px-4 py-2.5">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                placeholder="メッセージを入力..."
-                className="w-full bg-transparent outline-none text-sm placeholder-gray-400"
-                disabled={sessionEnded}
-              />
+        {chatTab === 'private' && (
+          <div className="bg-white border-t border-orange-100 p-3 flex-shrink-0">
+            <div className="flex gap-2 items-end">
+              <div className="flex-1 bg-gray-100 rounded-2xl px-4 py-2.5">
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                  placeholder="メッセージを入力..."
+                  className="w-full bg-transparent outline-none text-sm placeholder-gray-400"
+                  disabled={sessionEnded}
+                />
+              </div>
+              <button
+                onClick={sendMessage}
+                disabled={!input.trim() || sessionEnded}
+                className="w-11 h-11 bg-orange-500 rounded-full flex items-center justify-center text-white hover:bg-orange-600 transition-all disabled:opacity-50 active:scale-90 flex-shrink-0"
+                aria-label="送信"
+              >
+                <SendIcon size={18} stroke={2} />
+              </button>
             </div>
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || sessionEnded}
-              className="w-11 h-11 bg-orange-500 rounded-full flex items-center justify-center text-white hover:bg-orange-600 transition-all disabled:opacity-50 active:scale-90 flex-shrink-0"
-              aria-label="送信"
-            >
-              <SendIcon size={18} stroke={2} />
-            </button>
           </div>
-        </div>
+        )}
+        {chatTab === 'public' && (
+          <div className="bg-white border-t border-orange-100 p-4 flex-shrink-0 text-center">
+            <p className="text-xs sm:text-sm text-gray-600">
+              💬 全体チャットは閲覧のみです
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Purchase Modal */}
