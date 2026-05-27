@@ -209,13 +209,13 @@ export default function Home() {
                     )}
                   </div>
                   <div className="w-14 h-14 bg-white dark:bg-gray-950/20 rounded-2xl flex items-center justify-center mb-4">
-                    <ProductIcon type={event.icon} size={28} stroke={1.5} />
+                    <ProductIcon type={'diamond'} size={28} stroke={1.5} />
                   </div>
                   <div className="flex items-center gap-1.5 mb-2">
                     <MapPinIcon size={12} stroke={2} />
                     <span className="text-xs opacity-80">{event.region}</span>
                   </div>
-                  <p className="text-lg font-bold mb-4">{event.name}</p>
+                  <p className="text-lg font-bold mb-4">イベント</p>
                   <div className="flex gap-2 flex-wrap">
                     {event.tags.map((tag) => (
                       <span key={tag} className="text-xs bg-white dark:bg-gray-950/20 px-3 py-1 rounded-full">{tag}</span>
