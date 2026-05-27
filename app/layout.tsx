@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
+import ClientWrapper from "./ClientWrapper";
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
@@ -25,7 +26,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className={notoSansJP.variable}>
-      <body className="bg-white antialiased">{children}</body>
+      <body className="bg-white antialiased">
+        <ClientWrapper>{children}</ClientWrapper>
+      </body>
     </html>
   );
 }

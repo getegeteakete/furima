@@ -45,32 +45,33 @@ export default function Header() {
           {/* Mobile menu button */}
           <button
             onClick={() => setOpen(!open)}
-            className="lg:hidden p-2 rounded-lg hover:bg-orange-50 transition-colors"
+            className="lg:hidden p-2.5 rounded-lg hover:bg-orange-50 transition-colors flex items-center justify-center w-11 h-11"
             aria-label="Menu"
+            aria-expanded={open}
           >
             <div className="w-6 h-5 flex flex-col justify-between">
-              <span className={`h-0.5 bg-gray-800 transition-all ${open ? 'rotate-45 translate-y-2' : ''}`} />
-              <span className={`h-0.5 bg-gray-800 transition-all ${open ? 'opacity-0' : ''}`} />
-              <span className={`h-0.5 bg-gray-800 transition-all ${open ? '-rotate-45 -translate-y-2' : ''}`} />
+              <span className={`h-0.5 bg-gray-800 w-full transition-all ${open ? 'rotate-45 translate-y-2.5' : ''}`} />
+              <span className={`h-0.5 bg-gray-800 w-full transition-all ${open ? 'opacity-0' : ''}`} />
+              <span className={`h-0.5 bg-gray-800 w-full transition-all ${open ? '-rotate-45 -translate-y-2.5' : ''}`} />
             </div>
           </button>
         </div>
 
         {/* Mobile Nav */}
         {open && (
-          <nav className="lg:hidden py-4 border-t border-orange-100 space-y-1 animate-slide-in">
-            <Link href="/" onClick={() => setOpen(false)} className="block py-3 px-4 text-sm font-bold text-gray-700 hover:bg-orange-50 rounded-lg">HOME</Link>
-            <Link href="/events" onClick={() => setOpen(false)} className="block py-3 px-4 text-sm font-bold text-gray-700 hover:bg-orange-50 rounded-lg">イベント一覧</Link>
-            <Link href="/seller" onClick={() => setOpen(false)} className="block py-3 px-4 text-sm font-bold text-gray-700 hover:bg-orange-50 rounded-lg">出店者ダッシュボード</Link>
-            <Link href="/about" onClick={() => setOpen(false)} className="block py-3 px-4 text-sm font-bold text-gray-700 hover:bg-orange-50 rounded-lg">使い方</Link>
-            <div className="pt-3 border-t border-orange-100 mt-3 space-y-2">
-              <Link href="/login" onClick={() => setOpen(false)} className="block py-3 px-4 text-center text-sm font-bold text-gray-700 border border-gray-200 rounded-full">
+          <nav className="lg:hidden py-5 sm:py-6 border-t border-orange-100 space-y-1 animate-slide-in max-h-screen overflow-y-auto">
+            <Link href="/" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 hover:bg-orange-50 rounded-lg transition-colors active:scale-95">HOME</Link>
+            <Link href="/events" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 hover:bg-orange-50 rounded-lg transition-colors active:scale-95">イベント一覧</Link>
+            <Link href="/seller" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 hover:bg-orange-50 rounded-lg transition-colors active:scale-95">出店者ダッシュボード</Link>
+            <Link href="/about" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 hover:bg-orange-50 rounded-lg transition-colors active:scale-95">使い方</Link>
+            <div className="pt-4 px-5 border-t border-orange-100 mt-4 space-y-3">
+              <Link href="/login" onClick={() => setOpen(false)} className="block py-4 px-5 text-center text-base font-bold text-gray-700 border-2 border-gray-200 rounded-full hover:border-orange-300 transition-colors active:scale-95">
                 ログイン
               </Link>
               <Link
                 href="/register"
                 onClick={() => setOpen(false)}
-                className="block py-3 px-4 text-center bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full text-sm font-bold shadow-md"
+                className="block py-4 px-5 text-center bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full text-base font-bold shadow-md hover:shadow-lg transition-all active:scale-95"
               >
                 無料登録
               </Link>
