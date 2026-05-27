@@ -25,7 +25,6 @@ export default function Header() {
           <nav className="hidden lg:flex items-center gap-8">
             <Link href="/" className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors">HOME</Link>
             <Link href="/events" className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors">イベント</Link>
-            <Link href="/live" className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors">LIVE</Link>
             <Link href="/seller" className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors">出店者</Link>
             <Link href="/about" className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors">使い方</Link>
           </nav>
@@ -62,7 +61,6 @@ export default function Header() {
           <nav className="lg:hidden py-4 border-t border-orange-100 space-y-1 animate-slide-in">
             <Link href="/" onClick={() => setOpen(false)} className="block py-3 px-4 text-sm font-bold text-gray-700 hover:bg-orange-50 rounded-lg">HOME</Link>
             <Link href="/events" onClick={() => setOpen(false)} className="block py-3 px-4 text-sm font-bold text-gray-700 hover:bg-orange-50 rounded-lg">イベント一覧</Link>
-            <Link href="/live" onClick={() => setOpen(false)} className="block py-3 px-4 text-sm font-bold text-gray-700 hover:bg-orange-50 rounded-lg">LIVE接客</Link>
             <Link href="/seller" onClick={() => setOpen(false)} className="block py-3 px-4 text-sm font-bold text-gray-700 hover:bg-orange-50 rounded-lg">出店者ダッシュボード</Link>
             <Link href="/about" onClick={() => setOpen(false)} className="block py-3 px-4 text-sm font-bold text-gray-700 hover:bg-orange-50 rounded-lg">使い方</Link>
             <div className="pt-3 border-t border-orange-100 mt-3 space-y-2">

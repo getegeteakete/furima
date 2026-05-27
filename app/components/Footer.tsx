@@ -33,9 +33,9 @@ export default function Footer() {
             <h3 className="text-sm font-bold text-white mb-4">サービス</h3>
             <ul className="space-y-3">
               <li><Link href="/events" className="text-sm text-gray-400 hover:text-orange-400 transition-colors">イベント一覧</Link></li>
-              <li><Link href="/live" className="text-sm text-gray-400 hover:text-orange-400 transition-colors">LIVE接客</Link></li>
               <li><Link href="/seller" className="text-sm text-gray-400 hover:text-orange-400 transition-colors">出店者になる</Link></li>
               <li><Link href="/about" className="text-sm text-gray-400 hover:text-orange-400 transition-colors">使い方</Link></li>
+              <li><Link href="/register" className="text-sm text-gray-400 hover:text-orange-400 transition-colors">無料会員登録</Link></li>
             </ul>
           </div>
 

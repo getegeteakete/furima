@@ -4,63 +4,81 @@ import Footer from '../components/Footer';
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-50 flex flex-col">
       <Header />
 
-      <section className="py-12 lg:py-20">
-        <div className="max-w-md mx-auto px-4">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl lg:text-4xl font-black text-gray-900 mb-3">おかえりなさい！</h1>
-            <p className="text-sm text-gray-600">フリマライブにログイン</p>
-          </div>
+      <main className="flex-1 flex items-center justify-center py-8 sm:py-12 lg:py-16">
+        <div className="w-full max-w-md mx-auto px-4 sm:px-6">
+          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 px-6 py-6 sm:py-8 text-white text-center">
+              <div className="text-4xl sm:text-5xl mb-3">👋</div>
+              <h1 className="text-xl sm:text-2xl font-black mb-1">おかえりなさい</h1>
+              <p className="text-xs sm:text-sm text-orange-100">フリマライブにログイン</p>
+            </div>
 
-          <div className="bg-white rounded-3xl p-6 lg:p-8 shadow-xl border border-orange-100">
-            <div className="space-y-4">
+            <div className="px-5 sm:px-6 py-6 sm:py-8 space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-700 block mb-2">メールアドレス</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  メールアドレス
+                </label>
                 <input
                   type="email"
-                  placeholder="you@example.com"
-                  className="w-full px-4 py-3 bg-orange-50 border border-orange-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="your@email.com"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
+
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs font-bold text-gray-700">パスワード</label>
-                  <Link href="#" className="text-xs text-orange-600 font-bold">忘れた方</Link>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700">
+                    パスワード
+                  </label>
+                  <Link href="#" className="text-[10px] sm:text-xs text-orange-600 font-bold hover:underline">
+                    忘れた方
+                  </Link>
                 </div>
                 <input
                   type="password"
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 bg-orange-50 border border-orange-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="パスワードを入力"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
 
-              <button className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full font-black shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all">
-                ログイン
+              <div className="flex items-center gap-2 pt-1">
+                <input type="checkbox" id="remember" className="w-4 h-4 accent-orange-500" />
+                <label htmlFor="remember" className="text-xs text-gray-600">
+                  ログイン状態を保持する
+                </label>
+              </div>
+
+              <button className="w-full px-6 py-3.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full font-black text-sm sm:text-base shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all active:scale-95">
+                ログイン →
               </button>
 
               <div className="flex items-center gap-3 my-4">
                 <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-400">または</span>
+                <span className="text-[10px] text-gray-400">または</span>
                 <div className="flex-1 h-px bg-gray-200" />
               </div>
 
-              <button className="w-full py-3 bg-green-500 text-white rounded-full font-bold text-sm shadow-md hover:bg-green-600 transition-colors">
-                LINEでログイン
-              </button>
-              <button className="w-full py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-full font-bold text-sm hover:bg-gray-50 transition-colors">
-                Googleでログイン
-              </button>
+              <div className="space-y-2">
+                <button className="w-full px-6 py-3 bg-[#06C755] text-white rounded-full font-bold text-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
+                  <span>📱</span> LINEでログイン
+                </button>
+                <button className="w-full px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-full font-bold text-sm hover:border-gray-300 transition-all flex items-center justify-center gap-2">
+                  <span>🌐</span> Googleでログイン
+                </button>
+              </div>
+            </div>
 
-              <p className="text-center text-sm text-gray-600 pt-4 border-t border-gray-100">
-                アカウントをお持ちでないですか？
-                <Link href="/register" className="text-orange-600 font-bold ml-1">無料登録</Link>
+            <div className="bg-gray-50 px-5 sm:px-6 py-4 text-center">
+              <p className="text-xs sm:text-sm text-gray-600">
+                会員未登録の方は <Link href="/register" className="text-orange-600 font-black hover:underline">無料登録</Link>
               </p>
             </div>
           </div>
         </div>
-      </section>
+      </main>
 
       <Footer />
     </div>
