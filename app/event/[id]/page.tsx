@@ -213,10 +213,10 @@ export default function EventDetailPage() {
 
                   {/* CTA Button */}
                   <button
-                    onClick={() => router.push(`/event/${eventId}/seller/${seller.id}`)}
+                    onClick={() => router.push(`/event/${eventId}/seller/${seller.id}/waiting`)}
                     className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-bold hover:shadow-lg transition-all active:scale-95"
                   >
-                    {seller.name} とチャットする
+                    {seller.name} に予約する
                   </button>
                 </div>
               </div>
