@@ -254,18 +254,25 @@ export default function Home() {
 
           {/* Video Frame */}
           <div className="max-w-4xl mx-auto">
-            {/* スマホ版: 縦動画 (9:16) */}
+            {/* スマホ版: 縦動画 (9:16) - 自動再生 */}
             <div className="lg:hidden max-w-xs mx-auto">
               <div className="relative aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl ring-4 ring-orange-500/20">
                 <video
                   className="w-full h-full object-cover"
-                  controls
+                  autoPlay
+                  muted
+                  loop
                   playsInline
-                  preload="metadata"
+                  controls
+                  preload="auto"
                 >
                   <source src="/videos/furima-intro-mobile.mp4" type="video/mp4" />
                   お使いのブラウザは動画再生に対応していません。
                 </video>
+                {/* ミュート案内 */}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur text-white text-[10px] px-3 py-1.5 rounded-full pointer-events-none">
+                  🔇 タップで音声ON
+                </div>
               </div>
             </div>
 
