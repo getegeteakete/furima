@@ -35,7 +35,7 @@ export default function AdminUsersPage() {
         {users.map((u, i) => (
           <div
             key={u.id}
-            className={`flex items-center gap-4 p-4 ${i !== 0 ? 'border-t border-gray-100' : ''}`}
+            className={`flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 p-4 ${i !== 0 ? 'border-t border-gray-100' : ''}`}
           >
             <div className="w-11 h-11 bg-gradient-to-br from-gray-300 to-gray-400 rounded-xl flex items-center justify-center text-white flex-shrink-0">
               <UserIcon size={20} stroke={2} />
@@ -47,10 +47,11 @@ export default function AdminUsersPage() {
             <span className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${ROLE_LABELS[u.role].cls}`}>
               {ROLE_LABELS[u.role].label}
             </span>
+            {/* スマホでは下段に全幅で表示 */}
             <select
               value={u.role}
               onChange={(e) => updateUserRole(u.id, e.target.value as UserRole)}
-              className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs font-bold bg-white focus:ring-2 focus:ring-orange-500 outline-none flex-shrink-0"
+              className="w-full sm:w-auto border border-gray-300 rounded-lg px-3 py-2 sm:py-1.5 text-xs font-bold bg-white focus:ring-2 focus:ring-orange-500 outline-none flex-shrink-0 order-last sm:order-none"
             >
               <option value="admin">運営管理者</option>
               <option value="event_manager">イベント管理者</option>

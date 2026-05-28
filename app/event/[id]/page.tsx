@@ -207,17 +207,19 @@ export default function EventDetailPage() {
                   <div className="mb-8">
                     <p className="text-xs font-bold text-orange-600 mb-4 tracking-widest uppercase">
                       目玉商品（5点）
+                      <span className="sm:hidden text-gray-400 normal-case font-normal ml-1">← 横スクロール</span>
                     </p>
-                    <div className="grid grid-cols-5 gap-3">
-                      {seller.products.map((product) => (
+                    {/* スマホ: 横スクロール / PC: 5列グリッド */}
+                    <div className="flex sm:grid sm:grid-cols-5 gap-3 overflow-x-auto sm:overflow-visible pb-2 sm:pb-0 scrollbar-hide -mx-1 px-1">
+                      {seller.products.slice(0, 5).map((product) => (
                         <div
                           key={product.id}
-                          className="flex flex-col items-center text-center hover:scale-105 transition-transform cursor-pointer"
+                          className="flex flex-col items-center text-center hover:scale-105 transition-transform cursor-pointer flex-shrink-0 w-20 sm:w-auto"
                         >
                           <div className="w-full aspect-square bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center mb-2 text-orange-600">
                             <ProductIcon type={product.icon} size={24} stroke={1.5} />
                           </div>
-                          <p className="text-xs font-bold text-gray-900 line-clamp-1 mb-1">
+                          <p className="text-xs font-bold text-gray-900 line-clamp-1 mb-1 w-full">
                             {product.name}
                           </p>
                           <p className="text-xs font-black text-orange-600">
