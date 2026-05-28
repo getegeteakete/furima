@@ -254,16 +254,34 @@ export default function Home() {
 
           {/* Video Frame */}
           <div className="max-w-4xl mx-auto">
-            <div className="relative aspect-video bg-black rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl ring-4 ring-orange-500/20">
-              <video
-                className="w-full h-full object-cover"
-                controls
-                playsInline
-                preload="metadata"
-              >
-                <source src="/videos/furima-intro.mp4" type="video/mp4" />
-                お使いのブラウザは動画再生に対応していません。
-              </video>
+            {/* スマホ版: 縦動画 (9:16) */}
+            <div className="lg:hidden max-w-xs mx-auto">
+              <div className="relative aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl ring-4 ring-orange-500/20">
+                <video
+                  className="w-full h-full object-cover"
+                  controls
+                  playsInline
+                  preload="metadata"
+                >
+                  <source src="/videos/furima-intro-mobile.mp4" type="video/mp4" />
+                  お使いのブラウザは動画再生に対応していません。
+                </video>
+              </div>
+            </div>
+
+            {/* PC版: 横動画 (16:9) */}
+            <div className="hidden lg:block">
+              <div className="relative aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl ring-4 ring-orange-500/20">
+                <video
+                  className="w-full h-full object-cover"
+                  controls
+                  playsInline
+                  preload="metadata"
+                >
+                  <source src="/videos/furima-intro.mp4" type="video/mp4" />
+                  お使いのブラウザは動画再生に対応していません。
+                </video>
+              </div>
             </div>
           </div>
         </div>
