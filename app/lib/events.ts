@@ -50,6 +50,11 @@ export const sellers: Seller[] = [
       { id: 3, name: 'ハンドメイドリング', price: 3200, icon: 'ring', description: 'シルバー925製の手作りリング' },
       { id: 4, name: 'ガラスチャーム', price: 1800, icon: 'sparkles', description: 'カラフルなガラス玉のチャーム' },
       { id: 5, name: 'シルバーブレス', price: 6500, icon: 'diamond', description: 'スターリングシルバー使用' },
+      { id: 6, name: 'ドライフラワーピアス', price: 3000, icon: 'sparkles', description: '本物のお花を閉じ込めたピアス' },
+      { id: 7, name: 'パールイヤリング', price: 3800, icon: 'jewelry', description: '淡水パールの上品なイヤリング' },
+      { id: 8, name: 'レジンキーホルダー', price: 1500, icon: 'sparkles', description: '海をイメージしたブルーレジン' },
+      { id: 9, name: '天然石ブレスレット', price: 4200, icon: 'diamond', description: 'ローズクォーツのブレスレット' },
+      { id: 10, name: 'ビーズアンクレット', price: 2200, icon: 'necklace', description: '夏にぴったりのアンクレット' },
     ],
   },
   {

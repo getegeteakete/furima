@@ -237,6 +237,54 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ===== INTRO VIDEO ===== */}
+      <section className="relative bg-white dark:bg-gray-950 overflow-hidden">
+        <div className="relative container-main section-spacing-sm">
+          <div className="text-center mb-10 lg:mb-12">
+            <span className="inline-block px-4 py-1.5 bg-orange-100 text-orange-700 rounded-full text-xs font-black tracking-widest uppercase mb-4">
+              About Us
+            </span>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-4 text-gray-900 dark:text-white">
+              フリマライブとは？
+            </h2>
+            <p className="text-sm lg:text-base text-gray-600 dark:text-gray-300 max-w-2xl mx-auto font-medium">
+              サービスの使い方や魅力を動画でわかりやすくご紹介します。
+            </p>
+          </div>
+
+          {/* Video Frame */}
+          <div className="max-w-4xl mx-auto">
+            <div className="relative aspect-video bg-black rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl ring-4 ring-orange-500/20">
+              {/* 動画が入るまでのプレースホルダー（真っ黒） */}
+              <video
+                className="w-full h-full object-cover"
+                controls
+                playsInline
+                poster=""
+              >
+                {/* 動画ファイルを public/videos/ に配置後、有効化 */}
+                {/* <source src="/videos/furima-intro.mp4" type="video/mp4" /> */}
+                お使いのブラウザは動画再生に対応していません。
+              </video>
+
+              {/* プレースホルダーオーバーレイ（動画未設定時に表示） */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black pointer-events-none">
+                <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-4">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="text-white/60 ml-1">
+                    <path d="M8 5v14l11-7z" fill="currentColor" />
+                  </svg>
+                </div>
+                <p className="text-white/40 text-sm font-medium">紹介動画 Coming Soon</p>
+              </div>
+            </div>
+
+            <p className="text-center text-xs text-gray-400 mt-4">
+              ※ 動画ファイルを <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">public/videos/furima-intro.mp4</code> に配置してください
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ===== ITEM LINE UP ===== */}
       <section className="relative bg-orange-600 text-white overflow-hidden">
         <div className="relative container-main section-spacing-sm text-center">
