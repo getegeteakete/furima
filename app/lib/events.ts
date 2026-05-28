@@ -129,7 +129,7 @@ export const sellers: Seller[] = [
 // 時間帯・地域ごとのイベント（複数出店者を含む）
 export const timeSlotEvents: TimeSlotEvent[] = [
   {
-    id: '20:00-shiga',
+    id: '2000-shiga',
     startTime: '20:00',
     endTime: '22:00',
     region: '滋賀',
@@ -138,7 +138,7 @@ export const timeSlotEvents: TimeSlotEvent[] = [
     sellers: [sellers[0]], // mina.craft
   },
   {
-    id: '20:15-kyoto',
+    id: '2015-kyoto',
     startTime: '20:15',
     endTime: '22:15',
     region: '京都',
@@ -147,7 +147,7 @@ export const timeSlotEvents: TimeSlotEvent[] = [
     sellers: [sellers[1]], // kyoto.vintage
   },
   {
-    id: '20:30-osaka',
+    id: '2030-osaka',
     startTime: '20:30',
     endTime: '22:30',
     region: '大阪',
@@ -156,7 +156,7 @@ export const timeSlotEvents: TimeSlotEvent[] = [
     sellers: [sellers[2]], // osaka.antique
   },
   {
-    id: '20:45-fukuoka',
+    id: '2045-fukuoka',
     startTime: '20:45',
     endTime: '22:45',
     region: '福岡',
@@ -165,7 +165,7 @@ export const timeSlotEvents: TimeSlotEvent[] = [
     sellers: [sellers[3]], // fukuoka.handmade
   },
   {
-    id: '21:00-hokkaido',
+    id: '2100-hokkaido',
     startTime: '21:00',
     endTime: '23:00',
     region: '北海道',
