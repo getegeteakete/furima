@@ -10,8 +10,16 @@ import {
   CloseIcon,
   CheckIcon,
   HeartIcon,
+  RefreshIcon,
 } from '../../../../components/Icons';
 import { getTimeSlotEventById, getSellerById, type Product } from '../../../../lib/events';
+import {
+  getChatSettings,
+  startSession,
+  endSession,
+  CURRENT_MOCK_BUYER_ID,
+  type ChatSettings,
+} from '../../../../lib/mockStore';
 
 type Message = {
   id: number;
@@ -19,6 +27,7 @@ type Message = {
   sender: 'me' | 'shop' | 'system';
   timestamp: string;
   productId?: number;
+  images?: string[]; // ⑧ 画像URL（dataURL）
 };
 
 export default function ChatRoomPage() {
@@ -48,8 +57,14 @@ export default function ChatRoomPage() {
   const [input, setInput] = useState('');
   const [timeLeft, setTimeLeft] = useState(600);
   const [sessionEnded, setSessionEnded] = useState(false);
+  const [endReason, setEndReason] = useState<'timeout' | 'manual'>('manual'); // ⑨
+  const [overtimeSeconds, setOvertimeSeconds] = useState(0); // ⑨ 超過時間
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [chatTab, setChatTab] = useState<'private' | 'public'>('private');
+  const [chatSettings, setChatSettings] = useState<ChatSettings | null>(null); // ⑧⑨
+  const [selectedImages, setSelectedImages] = useState<{ id: string; dataUrl: string }[]>([]); // ⑧
+  const [reRequested, setReRequested] = useState(false); // ⑨ 再リクエスト
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [publicMessages, setPublicMessages] = useState<Message[]>([
     {
       id: 1,
@@ -112,17 +127,44 @@ export default function ChatRoomPage() {
     }
   }, [seller, event]);
 
+  // ⑧⑨ チャット設定を読み込み + ⑥ セッション開始（ロック取得）
+  useEffect(() => {
+    const settings = getChatSettings();
+    setChatSettings(settings);
+    setTimeLeft(settings.sessionDurationSeconds);
+
+    if (event && seller) {
+      startSession(CURRENT_MOCK_BUYER_ID, event.id, seller.id);
+    }
+    // アンマウント時にセッション解除
+    return () => {
+      if (event) endSession(CURRENT_MOCK_BUYER_ID, event.id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ⑨ タイマー：0到達後は超過時間をマイナスカウント
   useEffect(() => {
     if (sessionEnded) return;
-    if (timeLeft <= 0) {
-      setSessionEnded(true);
-      return;
-    }
+
     const timer = setInterval(() => {
-      setTimeLeft((t) => t - 1);
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          // 時間切れ
+          if (chatSettings?.autoCloseOnTimeout) {
+            setEndReason('timeout');
+            setSessionEnded(true);
+            return 0;
+          }
+          // 自動退出OFF → 超過時間カウント開始
+          setOvertimeSeconds((o) => o + 1);
+          return 0;
+        }
+        return t - 1;
+      });
     }, 1000);
     return () => clearInterval(timer);
-  }, [timeLeft, sessionEnded]);
+  }, [sessionEnded, chatSettings]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -134,17 +176,65 @@ export default function ChatRoomPage() {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
+  // ⑨ 超過時間をマイナス表示
+  const formatOvertime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `−${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  // ⑧ 画像選択（サイズ・枚数チェック）
+  const handleImageSelect = (files: FileList | null) => {
+    if (!files || !chatSettings) return;
+    const maxBytes = chatSettings.maxImageSizeMB * 1024 * 1024;
+    const toAdd: { id: string; dataUrl: string }[] = [];
+
+    Array.from(files).forEach((file) => {
+      if (file.size > maxBytes) {
+        alert(`「${file.name}」は${chatSettings.maxImageSizeMB}MBを超えています`);
+        return;
+      }
+      if (selectedImages.length + toAdd.length >= chatSettings.maxImagesPerMessage) {
+        alert(`画像は最大${chatSettings.maxImagesPerMessage}枚までです`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSelectedImages((prev) => {
+          if (prev.length >= chatSettings.maxImagesPerMessage) return prev;
+          return [...prev, { id: Math.random().toString(36).slice(2), dataUrl: e.target?.result as string }];
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // ⑨ 手動終了
+  const handleManualEnd = () => {
+    setEndReason('manual');
+    setSessionEnded(true);
+    if (event) endSession(CURRENT_MOCK_BUYER_ID, event.id);
+  };
+
+  // ⑨ 再リクエスト（順番の最後に並ぶ）
+  const handleReRequest = () => {
+    setReRequested(true);
+  };
+
   const sendMessage = () => {
-    if (!input.trim() || sessionEnded) return;
+    if ((!input.trim() && selectedImages.length === 0) || sessionEnded) return;
 
     const newMessage: Message = {
       id: messages.length + 1,
       text: input.trim(),
       sender: 'me',
       timestamp: new Date().toTimeString().slice(0, 5),
+      images: selectedImages.length > 0 ? selectedImages.map((i) => i.dataUrl) : undefined,
     };
     setMessages((prev) => [...prev, newMessage]);
     setInput('');
+    setSelectedImages([]);
 
     setTimeout(() => {
       const replies = [
@@ -154,6 +244,7 @@ export default function ChatRoomPage() {
         'ご質問あればお気軽に',
         '値段相談も承ります',
         'まとめ買いだとお値引きできますよ',
+        '素敵なお写真ありがとうございます！',
       ];
       setMessages((prev) => [
         ...prev,
@@ -225,25 +316,54 @@ export default function ChatRoomPage() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-orange-100 rounded-3xl mb-5 text-orange-600">
             <HeartIcon size={40} stroke={1.5} />
           </div>
-          <h2 className="text-2xl font-black text-gray-900 mb-4">
-            接客時間が終了しました
+          <h2 className="text-2xl font-black text-gray-900 mb-3">
+            {endReason === 'timeout' ? '接客時間が終了しました' : '接客を終了しました'}
           </h2>
+
+          {/* ⑨ 超過時間の表示 */}
+          {overtimeSeconds > 0 && (
+            <div className="bg-red-50 rounded-2xl p-4 mb-4">
+              <p className="text-xs text-red-600 font-bold mb-1">超過時間</p>
+              <p className="text-3xl font-black text-red-500 font-mono">
+                {formatOvertime(overtimeSeconds)}
+              </p>
+            </div>
+          )}
+
           <p className="text-sm text-gray-600 mb-8 leading-relaxed">
             {seller.name}さんとのチャットが終了しました。<br />
             ご利用ありがとうございました！
           </p>
+
           <div className="flex flex-col gap-3">
+            {/* ⑨ 再リクエスト（設定で許可されている場合） */}
+            {chatSettings?.allowReRequest && (
+              reRequested ? (
+                <div className="w-full px-6 py-3.5 bg-green-100 text-green-700 rounded-full font-bold text-sm flex items-center justify-center gap-2">
+                  <CheckIcon size={18} stroke={2.5} />
+                  再リクエストを送信しました（順番待ちの最後尾に追加）
+                </div>
+              ) : (
+                <button
+                  onClick={handleReRequest}
+                  className="w-full px-6 py-3.5 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-all flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <RefreshIcon size={18} stroke={2} />
+                  もう一度 {seller.name} に並ぶ
+                </button>
+              )
+            )}
             <Link
-              href="/events"
+              href={`/event/${eventId}`}
               className="w-full px-6 py-3.5 bg-orange-500 text-white rounded-full font-bold text-sm hover:bg-orange-600 transition-all"
             >
-              他のイベントを見る
+              他の出店者を見る
             </Link>
             <Link
-              href="/"
+              href="/events"
               className="w-full px-6 py-3.5 bg-gray-100 text-gray-700 rounded-full font-bold text-sm hover:bg-gray-200 transition-all"
             >
-              トップへ戻る
+              イベント一覧へ
             </Link>
           </div>
         </div>
@@ -275,12 +395,20 @@ export default function ChatRoomPage() {
             </p>
             <p className="text-xs opacity-90">{chatTab === 'private' ? 'マンツーマン接客中' : '全体チャット'}</p>
           </div>
-          <div className={`text-right flex-shrink-0 ${timeLeft < 60 ? 'animate-pulse' : ''}`}>
-            <p className="text-[10px] opacity-80">残り時間</p>
-            <p className={`font-black text-base sm:text-lg ${timeLeft < 60 ? 'text-yellow-200' : ''}`}>
-              {formatTime(timeLeft)}
+          <div className={`text-right flex-shrink-0 ${timeLeft < 60 && timeLeft > 0 ? 'animate-pulse' : ''}`}>
+            <p className="text-[10px] opacity-80">{overtimeSeconds > 0 ? '超過時間' : '残り時間'}</p>
+            <p className={`font-black text-base sm:text-lg font-mono ${
+              overtimeSeconds > 0 ? 'text-red-200' : timeLeft < 60 ? 'text-yellow-200' : ''
+            }`}>
+              {overtimeSeconds > 0 ? formatOvertime(overtimeSeconds) : formatTime(timeLeft)}
             </p>
           </div>
+          <button
+            onClick={handleManualEnd}
+            className="flex-shrink-0 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full text-xs font-bold transition-all active:scale-95"
+          >
+            終了
+          </button>
         </div>
         
         {/* Chat Tab Navigation */}
@@ -309,8 +437,8 @@ export default function ChatRoomPage() {
         
         <div className="h-1 bg-white/20">
           <div
-            className="h-full bg-yellow-300 transition-all duration-1000"
-            style={{ width: `${(timeLeft / 600) * 100}%` }}
+            className={`h-full transition-all duration-1000 ${overtimeSeconds > 0 ? 'bg-red-400' : 'bg-yellow-300'}`}
+            style={{ width: overtimeSeconds > 0 ? '100%' : `${chatSettings ? (timeLeft / chatSettings.sessionDurationSeconds) * 100 : 0}%` }}
           />
         </div>
       </header>
@@ -422,15 +550,31 @@ export default function ChatRoomPage() {
                   </div>
                 )}
                 <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[75%]`}>
-                  <div
-                    className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                      isMe
-                        ? 'bg-orange-500 text-white rounded-br-sm'
-                        : 'bg-white text-gray-900 rounded-bl-sm shadow-sm border border-orange-100'
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
+                  {/* ⑧ 画像表示 */}
+                  {msg.images && msg.images.length > 0 && (
+                    <div className={`grid gap-1 mb-1 ${msg.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                      {msg.images.map((img, idx) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`送信画像${idx + 1}`}
+                          className="rounded-xl max-w-[140px] max-h-[140px] object-cover border border-orange-100"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {msg.text && (
+                    <div
+                      className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                        isMe
+                          ? 'bg-orange-500 text-white rounded-br-sm'
+                          : 'bg-white text-gray-900 rounded-bl-sm shadow-sm border border-orange-100'
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
+                  )}
                   <span className="text-[10px] text-gray-400 mt-0.5 px-1">{msg.timestamp}</span>
                 </div>
               </div>
@@ -441,7 +585,50 @@ export default function ChatRoomPage() {
 
         {chatTab === 'private' && (
           <div className="bg-white border-t border-orange-100 p-3 flex-shrink-0">
+            {/* ⑧ 選択済み画像プレビュー */}
+            {selectedImages.length > 0 && (
+              <div className="flex gap-2 mb-2 flex-wrap">
+                {selectedImages.map((img) => (
+                  <div key={img.id} className="relative w-14 h-14 rounded-lg overflow-hidden border border-orange-200">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.dataUrl} alt="プレビュー" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => setSelectedImages((prev) => prev.filter((i) => i.id !== img.id))}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center"
+                      aria-label="削除"
+                    >
+                      <CloseIcon size={12} stroke={2.5} />
+                    </button>
+                  </div>
+                ))}
+                <span className="text-[10px] text-gray-400 self-end">
+                  {selectedImages.length}/{chatSettings?.maxImagesPerMessage ?? 5}枚
+                </span>
+              </div>
+            )}
             <div className="flex gap-2 items-end">
+              {/* ⑧ 画像送信ボタン */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => handleImageSelect(e.target.files)}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={sessionEnded}
+                className="w-11 h-11 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-all active:scale-90 flex-shrink-0 disabled:opacity-50"
+                aria-label="画像を送る"
+                title={`画像送信（最大${chatSettings?.maxImageSizeMB ?? 2}MB・${chatSettings?.maxImagesPerMessage ?? 5}枚）`}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+              </button>
               <div className="flex-1 bg-gray-100 rounded-2xl px-4 py-2.5">
                 <input
                   value={input}
@@ -454,7 +641,7 @@ export default function ChatRoomPage() {
               </div>
               <button
                 onClick={sendMessage}
-                disabled={!input.trim() || sessionEnded}
+                disabled={(!input.trim() && selectedImages.length === 0) || sessionEnded}
                 className="w-11 h-11 bg-orange-500 rounded-full flex items-center justify-center text-white hover:bg-orange-600 transition-all disabled:opacity-50 active:scale-90 flex-shrink-0"
                 aria-label="送信"
               >

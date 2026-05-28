@@ -14,6 +14,7 @@ import {
   StarIcon,
 } from '../../components/Icons';
 import { getTimeSlotEventById } from '../../lib/events';
+import { getBuyerActiveSession, CURRENT_MOCK_BUYER_ID } from '../../lib/mockStore';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -21,6 +22,22 @@ export default function EventDetailPage() {
   const eventId = params.id as string;
   const event = getTimeSlotEventById(eventId);
   const [countdownTime, setCountdownTime] = useState<number | null>(null);
+  const [activeSellerId, setActiveSellerId] = useState<string | null>(null); // ⑥ 接客中の出店者
+
+  // ⑥ 進行中セッションを検知
+  useEffect(() => {
+    const check = () => {
+      const session = getBuyerActiveSession(CURRENT_MOCK_BUYER_ID, eventId);
+      setActiveSellerId(session?.sellerId ?? null);
+    };
+    check();
+    window.addEventListener('furima-store-update', check);
+    window.addEventListener('focus', check);
+    return () => {
+      window.removeEventListener('furima-store-update', check);
+      window.removeEventListener('focus', check);
+    };
+  }, [eventId]);
 
   // カウントダウンタイマー
   useEffect(() => {
@@ -211,13 +228,37 @@ export default function EventDetailPage() {
                     </div>
                   </div>
 
-                  {/* CTA Button */}
-                  <button
-                    onClick={() => router.push(`/event/${eventId}/seller/${seller.id}/waiting`)}
-                    className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl font-bold hover:shadow-lg transition-all active:scale-95"
-                  >
-                    {seller.name} に予約する
-                  </button>
+                  {/* CTA Button - ⑥ 順序制御 */}
+                  {(() => {
+                    const isBlockedByOther = activeSellerId !== null && activeSellerId !== seller.id;
+                    const isCurrentSession = activeSellerId === seller.id;
+                    return (
+                      <>
+                        <button
+                          onClick={() => router.push(`/event/${eventId}/seller/${seller.id}/waiting`)}
+                          disabled={isBlockedByOther}
+                          className={`w-full py-4 rounded-2xl font-bold transition-all active:scale-95 ${
+                            isBlockedByOther
+                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                              : isCurrentSession
+                              ? 'bg-green-500 text-white hover:shadow-lg'
+                              : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:shadow-lg'
+                          }`}
+                        >
+                          {isBlockedByOther
+                            ? '他の出店者と接客中です'
+                            : isCurrentSession
+                            ? `${seller.name} の接客に戻る`
+                            : `${seller.name} に予約する`}
+                        </button>
+                        {isBlockedByOther && (
+                          <p className="text-xs text-gray-400 text-center mt-2">
+                            現在の接客を終了すると予約できます
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             ))}

@@ -140,7 +140,7 @@ export const timeSlotEvents: TimeSlotEvent[] = [
     region: '滋賀',
     date: '今夜',
     status: 'live',
-    sellers: [sellers[0]], // mina.craft
+    sellers: [sellers[0], sellers[1], sellers[2]], // mina.craft, kyoto.vintage, osaka.antique（⑥複数出店者）
   },
   {
     id: '2015-kyoto',
