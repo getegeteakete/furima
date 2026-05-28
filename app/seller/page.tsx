@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -17,16 +17,20 @@ import {
   MapPinIcon,
   ArrowRightIcon,
   ReceiptIcon,
+  ClockIcon,
   BellIcon,
 } from '../components/Icons';
 import type { ProductIconType } from '../components/Icons';
+import { getSellerTransactions, getRemainingDays } from '../lib/mockStore';
+import { useStoreData } from '../lib/useStore';
 
-type Tab = 'overview' | 'products' | 'events' | 'analytics';
+type Tab = 'overview' | 'products' | 'events' | 'transactions' | 'analytics';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: '概要' },
   { id: 'products', label: '商品管理' },
   { id: 'events', label: 'イベント管理' },
+  { id: 'transactions', label: '取引履歴' },
   { id: 'analytics', label: '売上分析' },
 ];
 
@@ -226,6 +230,9 @@ export default function SellerPage() {
             </div>
           )}
 
+          {/* Transactions Tab - 取引履歴 */}
+          {activeTab === 'transactions' && <SellerTransactions />}
+
           {/* Analytics Tab */}
           {activeTab === 'analytics' && (
             <div className="bg-white rounded-3xl border border-gray-200 dark:border-gray-800 p-7 sm:p-8 lg:p-10">
@@ -253,6 +260,71 @@ export default function SellerPage() {
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+// 取引履歴（出店者視点）
+function SellerTransactions() {
+  const getter = useCallback(() => getSellerTransactions('mina-craft'), []);
+  const [transactions] = useStoreData(getter);
+
+  return (
+    <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
+          <ReceiptIcon size={20} stroke={1.5} />
+        </div>
+        <h2 className="text-lg font-black text-gray-900">取引履歴</h2>
+      </div>
+      <p className="text-xs text-gray-500 mb-6">
+        ※ チャットのやり取りはイベント終了後7日間まで確認できます
+      </p>
+
+      {transactions.length === 0 ? (
+        <div className="py-12 text-center">
+          <ReceiptIcon size={40} stroke={1.5} className="text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-400 text-sm">まだ取引履歴がありません</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {transactions.map((txn) => {
+            const days = getRemainingDays(txn.expiresAt);
+            return (
+              <Link
+                key={txn.id}
+                href={`/transaction/${txn.id}?as=seller`}
+                className="block bg-gray-50 rounded-2xl p-4 sm:p-5 border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[10px] font-bold">
+                        取引完了
+                      </span>
+                      {txn.sellerReview ? (
+                        <span className="flex items-center gap-0.5 text-yellow-500 text-xs font-bold">
+                          <StarIcon size={12} stroke={2} className="fill-yellow-400" /> 評価済み
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-[10px] font-bold">
+                          購入者を評価する
+                        </span>
+                      )}
+                    </div>
+                    <p className="font-bold text-gray-900 truncate">{txn.productName}</p>
+                    <p className="text-xs text-gray-500">購入者: {txn.buyerName} ・ ¥{txn.productPrice.toLocaleString()}</p>
+                    <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-1">
+                      <ClockIcon size={11} stroke={2} /> あと{days}日で閲覧期限
+                    </p>
+                  </div>
+                  <ArrowRightIcon size={18} stroke={2} className="text-gray-400 flex-shrink-0" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

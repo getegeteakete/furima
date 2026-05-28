@@ -17,6 +17,7 @@ import {
   getChatSettings,
   startSession,
   endSession,
+  createTransaction,
   CURRENT_MOCK_BUYER_ID,
   type ChatSettings,
 } from '../../../../lib/mockStore';
@@ -290,21 +291,42 @@ export default function ChatRoomPage() {
       prev.map((p) => (p.id === selectedProduct.id ? { ...p, soldOut: true } : p))
     );
 
-    setMessages((prev) => [
-      ...prev,
+    const purchaseMessages: Message[] = [
       {
-        id: prev.length + 1,
+        id: messages.length + 1,
         text: `「${selectedProduct.name}」を購入確定しました！`,
         sender: 'me',
         timestamp: new Date().toTimeString().slice(0, 5),
       },
       {
-        id: prev.length + 2,
+        id: messages.length + 2,
         text: `ご購入ありがとうございます！後ほど住所等のご連絡をお願いします。商品は SOLD OUT 表示に変更しました。`,
         sender: 'shop',
         timestamp: new Date().toTimeString().slice(0, 5),
       },
-    ]);
+    ];
+    setMessages((prev) => [...prev, ...purchaseMessages]);
+
+    // ① 取引履歴に記録（チャット内容含む・7日間閲覧可能）
+    if (event && seller) {
+      const allMessages = [...messages, ...purchaseMessages];
+      createTransaction({
+        eventId: event.id,
+        eventTitle: `${event.startTime}〜${event.endTime} ${event.region}`,
+        sellerId: seller.id,
+        sellerName: seller.name,
+        buyerId: CURRENT_MOCK_BUYER_ID,
+        buyerName: '山田太郎',
+        productName: selectedProduct.name,
+        productPrice: selectedProduct.price,
+        messages: allMessages.map((m) => ({
+          text: m.text,
+          sender: m.sender === 'me' ? 'buyer' : 'seller',
+          timestamp: m.timestamp,
+          images: m.images,
+        })),
+      });
+    }
   };
 
   if (!event || !selectedProduct) return null;

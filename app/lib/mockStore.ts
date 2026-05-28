@@ -126,6 +126,7 @@ const KEYS = {
   users: 'furima_users',
   chatSettings: 'furima_chat_settings',
   activeSessions: 'furima_active_sessions', // ⑥ 進行中セッション
+  transactions: 'furima_transactions', // ① 取引履歴
 };
 
 // ---------- ヘルパー（SSR安全） ----------
@@ -329,6 +330,137 @@ export function canReserveSeller(buyerId: string, eventId: string, sellerId: str
 }
 
 // =============================================
+// ① 取引履歴 & ② 評価
+// =============================================
+
+export type TransactionMessage = {
+  text: string;
+  sender: 'buyer' | 'seller';
+  timestamp: string;
+  images?: string[];
+};
+
+export type Review = {
+  rating: number; // 1-5
+  comment: string;
+  createdAt: string;
+};
+
+export type Transaction = {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  sellerId: string;
+  sellerName: string;
+  buyerId: string;
+  buyerName: string;
+  productName: string;
+  productPrice: number;
+  purchasedAt: string;
+  // ① チャット履歴（7日間閲覧可能）
+  messages: TransactionMessage[];
+  expiresAt: string; // 閲覧期限（イベント終了 + 7日）
+  // ② 相互評価
+  buyerReview?: Review; // 購入者→出店者の評価
+  sellerReview?: Review; // 出店者→購入者の評価
+};
+
+const DEFAULT_TRANSACTIONS: Transaction[] = [
+  {
+    id: 'txn-demo-1',
+    eventId: '2000-shiga',
+    eventTitle: '【滋賀】夜のハンドメイドフリマ',
+    sellerId: 'mina-craft',
+    sellerName: 'mina.craft',
+    buyerId: 'buyer-1',
+    buyerName: '山田太郎',
+    productName: '天然石ネックレス',
+    productPrice: 4500,
+    purchasedAt: new Date(Date.now() - 2 * 86400000).toISOString(), // 2日前
+    messages: [
+      { text: '「天然石ネックレス」について教えてください！', sender: 'buyer', timestamp: '20:05' },
+      { text: '「天然石ネックレス」ですね！アメジストの天然石を使用。¥4,500でいかがでしょうか？', sender: 'seller', timestamp: '20:06' },
+      { text: '素敵です！購入します', sender: 'buyer', timestamp: '20:08' },
+      { text: 'ありがとうございます！発送先を教えてください', sender: 'seller', timestamp: '20:09' },
+    ],
+    expiresAt: new Date(Date.now() + 5 * 86400000).toISOString(), // あと5日
+  },
+];
+
+function purgeExpired(list: Transaction[]): Transaction[] {
+  const now = Date.now();
+  return list.filter((t) => new Date(t.expiresAt).getTime() > now);
+}
+
+export function getTransactions(): Transaction[] {
+  return purgeExpired(read<Transaction[]>(KEYS.transactions, DEFAULT_TRANSACTIONS));
+}
+
+// 購入者の取引履歴
+export function getBuyerTransactions(buyerId: string): Transaction[] {
+  return getTransactions().filter((t) => t.buyerId === buyerId);
+}
+
+// 出店者の取引履歴
+export function getSellerTransactions(sellerId: string): Transaction[] {
+  return getTransactions().filter((t) => t.sellerId === sellerId);
+}
+
+export function getTransactionById(id: string): Transaction | undefined {
+  return getTransactions().find((t) => t.id === id);
+}
+
+// ① 取引を記録（購入完了時）
+export function createTransaction(data: Omit<Transaction, 'id' | 'purchasedAt' | 'expiresAt'>): Transaction {
+  const transactions = getTransactions();
+  const txn: Transaction = {
+    ...data,
+    id: `txn-${Date.now()}`,
+    purchasedAt: new Date().toISOString(),
+    // イベント終了後7日間（簡易的に購入から7日）
+    expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
+  };
+  write(KEYS.transactions, [txn, ...transactions]);
+  return txn;
+}
+
+// ② 購入者が出店者を評価
+export function submitBuyerReview(transactionId: string, review: Review): void {
+  const transactions = getTransactions();
+  write(
+    KEYS.transactions,
+    transactions.map((t) => (t.id === transactionId ? { ...t, buyerReview: review } : t))
+  );
+}
+
+// ② 出店者が購入者を評価
+export function submitSellerReview(transactionId: string, review: Review): void {
+  const transactions = getTransactions();
+  write(
+    KEYS.transactions,
+    transactions.map((t) => (t.id === transactionId ? { ...t, sellerReview: review } : t))
+  );
+}
+
+// 出店者の平均評価を計算
+export function getSellerAverageRating(sellerId: string): { average: number; count: number } {
+  const reviews = getTransactions()
+    .filter((t) => t.sellerId === sellerId && t.buyerReview)
+    .map((t) => t.buyerReview!.rating);
+  if (reviews.length === 0) return { average: 0, count: 0 };
+  return {
+    average: reviews.reduce((a, b) => a + b, 0) / reviews.length,
+    count: reviews.length,
+  };
+}
+
+// 残り閲覧日数
+export function getRemainingDays(expiresAt: string): number {
+  const diff = new Date(expiresAt).getTime() - Date.now();
+  return Math.max(0, Math.ceil(diff / 86400000));
+}
+
+// =============================================
 // リセット（開発用）
 // =============================================
 export function resetMockStore(): void {
@@ -339,3 +471,4 @@ export function resetMockStore(): void {
 
 // 現在のモックユーザー（買い手）— ⑥のデモ用に固定
 export const CURRENT_MOCK_BUYER_ID = 'buyer-1';
+
