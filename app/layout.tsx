@@ -12,6 +12,10 @@ const notoSansJP = Noto_Sans_JP({
 export const metadata: Metadata = {
   title: "フリマライブ - オンライン接客型フリマイベント",
   description: "全国どこからでも！時間限定のオンライン接客型フリマイベント。チャットで出店者と会話しながらお買い物を楽しめます。",
+  icons: {
+    icon: "/favicon.png", // 📌 ロゴファイル (PNG/SVG)
+    apple: "/apple-touch-icon.png", // iOS ホーム画面
+  },
   openGraph: {
     title: "フリマライブ - オンライン接客型フリマイベント",
     description: "全国の出店者と直接チャットで会話しながらお買い物",
