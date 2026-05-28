@@ -445,7 +445,7 @@ export default function ChatRoomPage() {
 
       {/* TOP HALF: Products (個別チャット時のみ) */}
       {chatTab === 'private' && (
-      <div className="flex-1 bg-white border-b-4 border-orange-100 flex flex-col overflow-hidden min-h-0">
+      <div className="flex-shrink-0 sm:flex-1 bg-white border-b-4 border-orange-100 flex flex-col overflow-hidden min-h-0 max-h-[42vh] sm:max-h-none">
         <div className="p-4 bg-gradient-to-br from-orange-50 to-yellow-50 border-b border-orange-100 flex-shrink-0">
           <div className="flex gap-3 items-center">
             <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center flex-shrink-0 ${
@@ -485,14 +485,17 @@ export default function ChatRoomPage() {
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
           <p className="text-xs font-bold text-gray-700 mb-3 px-1">
             商品一覧 ({products.filter((p) => !p.soldOut).length}/{products.length})
+            <span className="sm:hidden text-gray-400 font-normal ml-1">← 横にスクロール</span>
           </p>
-          <div className="grid grid-cols-3 gap-3">
+
+          {/* スマホ: 横スクロール / PC: グリッド */}
+          <div className="flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto sm:overflow-x-visible pb-2 sm:pb-0 scrollbar-hide -mx-1 px-1">
             {products.map((product) => (
               <button
                 key={product.id}
                 onClick={() => !product.soldOut && askAboutProduct(product)}
                 disabled={product.soldOut}
-                className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+                className={`relative rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 w-28 sm:w-auto ${
                   selectedProduct.id === product.id
                     ? 'border-orange-500 ring-2 ring-orange-200'
                     : 'border-gray-200 dark:border-gray-800'
@@ -513,7 +516,7 @@ export default function ChatRoomPage() {
                   )}
                 </div>
                 <div className="p-2 bg-white">
-                  <p className="text-[10px] font-bold text-gray-900 line-clamp-1">
+                  <p className="text-[11px] font-bold text-gray-900 line-clamp-1">
                     {product.name}
                   </p>
                   <p className={`text-xs font-black ${product.soldOut ? 'text-gray-400 line-through' : 'text-orange-600'}`}>
