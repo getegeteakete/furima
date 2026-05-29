@@ -1,12 +1,13 @@
 'use client';
 
 import { useParams, useSearchParams } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '../../components/Header';
-import { ArrowLeftIcon, StarIcon, CheckIcon, ClockIcon } from '../../components/Icons';
+import { ArrowLeftIcon, StarIcon, CheckIcon, ClockIcon, SendIcon } from '../../components/Icons';
 import {
   getTransactionById,
+  appendTransactionMessage,
   submitBuyerReview,
   submitSellerReview,
   getRemainingDays,
@@ -59,10 +60,17 @@ export default function TransactionDetailPage() {
             <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
               取引完了
             </span>
-            <span className="text-xs text-gray-400 flex items-center gap-1">
-              <ClockIcon size={14} stroke={2} />
-              あと{remainingDays}日で閲覧期限
-            </span>
+            {txn.chatOpen ? (
+              <span className="text-xs text-green-600 flex items-center gap-1 font-medium">
+                <SendIcon size={14} stroke={2} />
+                連絡を継続できます
+              </span>
+            ) : (
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                <ClockIcon size={14} stroke={2} />
+                あと{remainingDays}日で閲覧期限
+              </span>
+            )}
           </div>
           <h1 className="text-xl font-black text-gray-900">{txn.productName}</h1>
           <p className="text-2xl font-black text-orange-600 mt-1">¥{txn.productPrice.toLocaleString()}</p>
@@ -81,46 +89,116 @@ export default function TransactionDetailPage() {
           existingReview={myReview}
         />
 
-        {/* ① チャット履歴 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-yellow-50">
-            <h2 className="font-black text-gray-900">チャット履歴</h2>
-            <p className="text-xs text-gray-500 mt-0.5">取引時のやり取りを確認できます（残り{remainingDays}日）</p>
-          </div>
-          <div className="p-4 space-y-3 max-h-[50vh] overflow-y-auto bg-orange-50/30">
-            {txn.messages.map((msg, i) => {
-              // 自分視点で左右を決定
-              const isMine = (viewAs === 'buyer' && msg.sender === 'buyer') || (viewAs === 'seller' && msg.sender === 'seller');
-              return (
-                <div key={i} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-[75%]`}>
-                    {msg.images && msg.images.length > 0 && (
-                      <div className="grid grid-cols-2 gap-1 mb-1">
-                        {msg.images.map((img, idx) => (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img key={idx} src={img} alt="" className="rounded-lg max-w-[120px] object-cover" />
-                        ))}
-                      </div>
-                    )}
-                    {msg.text && (
-                      <div className={`px-4 py-2.5 rounded-2xl text-sm ${
-                        isMine ? 'bg-orange-500 text-white rounded-br-sm' : 'bg-white text-gray-900 rounded-bl-sm border border-orange-100'
-                      }`}>
-                        {msg.text}
-                      </div>
-                    )}
-                    <span className="text-[10px] text-gray-400 mt-0.5 px-1">{msg.timestamp}</span>
+        {/* ① 継続チャット（出店者⇔購入者） */}
+        <ContinuedChat txnId={txn.id} viewAs={viewAs} partnerName={partnerName} />
+      </div>
+    </div>
+  );
+}
+
+// ① 継続チャット：取引後も発送・住所連絡などで会話を続けられる
+function ContinuedChat({
+  txnId,
+  viewAs,
+  partnerName,
+}: {
+  txnId: string;
+  viewAs: 'buyer' | 'seller';
+  partnerName: string;
+}) {
+  const getter = useCallback(() => getTransactionById(txnId), [txnId]);
+  const [txn] = useStoreData(getter);
+  const [draft, setDraft] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // メッセージ追加時に最下部へスクロール
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [txn?.messages.length]);
+
+  if (!txn) return null;
+
+  const handleSend = () => {
+    const text = draft.trim();
+    if (!text) return;
+    appendTransactionMessage(txnId, { text, sender: viewAs });
+    setDraft('');
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-yellow-50">
+        <h2 className="font-black text-gray-900">{partnerName} さんとのチャット</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          発送やお届け先のご連絡など、取引後も会話を続けられます
+        </p>
+      </div>
+
+      <div ref={scrollRef} className="p-4 space-y-3 max-h-[50vh] overflow-y-auto bg-orange-50/30">
+        {txn.messages.map((msg, i) => {
+          const isMine =
+            (viewAs === 'buyer' && msg.sender === 'buyer') ||
+            (viewAs === 'seller' && msg.sender === 'seller');
+          return (
+            <div key={i} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+              <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} max-w-[75%]`}>
+                {msg.images && msg.images.length > 0 && (
+                  <div className="grid grid-cols-2 gap-1 mb-1">
+                    {msg.images.map((img, idx) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={idx} src={img} alt="" className="rounded-lg max-w-[120px] object-cover" />
+                    ))}
                   </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
-            <p className="text-xs text-gray-400 text-center">
-              ※ 商品代金のお支払いは出店者と購入者で直接お願いします
-            </p>
-          </div>
+                )}
+                {msg.text && (
+                  <div
+                    className={`px-4 py-2.5 rounded-2xl text-sm ${
+                      isMine
+                        ? 'bg-orange-500 text-white rounded-br-sm'
+                        : 'bg-white text-gray-900 rounded-bl-sm border border-orange-100'
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                )}
+                <span className="text-[10px] text-gray-400 mt-0.5 px-1">{msg.timestamp}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 送信入力欄 */}
+      <div className="px-3 py-3 border-t border-gray-100 bg-white">
+        <div className="flex items-end gap-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              // Enterで送信（Shift+Enterで改行）
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            rows={1}
+            placeholder="メッセージを入力（発送・住所のご連絡など）"
+            className="flex-1 border border-gray-300 rounded-2xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 outline-none resize-none max-h-28"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!draft.trim()}
+            aria-label="送信"
+            className="flex-shrink-0 w-11 h-11 rounded-full bg-orange-600 text-white flex items-center justify-center hover:bg-orange-700 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <SendIcon size={20} stroke={2} />
+          </button>
         </div>
+        <p className="text-[11px] text-gray-400 text-center mt-2">
+          ※ 商品代金のお支払いは出店者と購入者で直接お願いします
+        </p>
       </div>
     </div>
   );

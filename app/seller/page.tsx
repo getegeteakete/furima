@@ -19,6 +19,7 @@ import {
   ReceiptIcon,
   ClockIcon,
   BellIcon,
+  SendIcon,
 } from '../components/Icons';
 import type { ProductIconType } from '../components/Icons';
 import { getSellerTransactions, getRemainingDays } from '../lib/mockStore';
@@ -314,9 +315,15 @@ function SellerTransactions() {
                     </div>
                     <p className="font-bold text-gray-900 truncate">{txn.productName}</p>
                     <p className="text-xs text-gray-500">購入者: {txn.buyerName} ・ ¥{txn.productPrice.toLocaleString()}</p>
-                    <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-1">
-                      <ClockIcon size={11} stroke={2} /> あと{days}日で閲覧期限
-                    </p>
+                    {txn.chatOpen ? (
+                      <p className="text-[10px] text-green-600 font-medium flex items-center gap-1 mt-1">
+                        <SendIcon size={11} stroke={2} /> 購入者と連絡継続中
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-1">
+                        <ClockIcon size={11} stroke={2} /> あと{days}日で閲覧期限
+                      </p>
+                    )}
                   </div>
                   <ArrowRightIcon size={18} stroke={2} className="text-gray-400 flex-shrink-0" />
                 </div>

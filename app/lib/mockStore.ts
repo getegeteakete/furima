@@ -360,6 +360,8 @@ export type Transaction = {
   // ① チャット履歴（7日間閲覧可能）
   messages: TransactionMessage[];
   expiresAt: string; // 閲覧期限（イベント終了 + 7日）
+  // 継続会話（発送・住所連絡など）。true の間は7日閲覧期限の対象外で会話を続けられる
+  chatOpen?: boolean;
   // ② 相互評価
   buyerReview?: Review; // 購入者→出店者の評価
   sellerReview?: Review; // 出店者→購入者の評価
@@ -389,7 +391,8 @@ const DEFAULT_TRANSACTIONS: Transaction[] = [
 
 function purgeExpired(list: Transaction[]): Transaction[] {
   const now = Date.now();
-  return list.filter((t) => new Date(t.expiresAt).getTime() > now);
+  // 継続会話中（chatOpen）の取引は閲覧期限の対象外
+  return list.filter((t) => t.chatOpen || new Date(t.expiresAt).getTime() > now);
 }
 
 export function getTransactions(): Transaction[] {
@@ -422,6 +425,27 @@ export function createTransaction(data: Omit<Transaction, 'id' | 'purchasedAt' |
   };
   write(KEYS.transactions, [txn, ...transactions]);
   return txn;
+}
+
+// ① 取引チャットへメッセージを追記（出店者⇔購入者の継続会話）
+// 送信すると chatOpen=true になり、7日の閲覧期限に関係なく会話を続けられる。
+export function appendTransactionMessage(
+  transactionId: string,
+  message: Omit<TransactionMessage, 'timestamp'> & { timestamp?: string }
+): void {
+  const timestamp =
+    message.timestamp ??
+    new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  const msg: TransactionMessage = { ...message, timestamp };
+  const transactions = getTransactions();
+  write(
+    KEYS.transactions,
+    transactions.map((t) =>
+      t.id === transactionId
+        ? { ...t, messages: [...t.messages, msg], chatOpen: true }
+        : t
+    )
+  );
 }
 
 // ② 購入者が出店者を評価
