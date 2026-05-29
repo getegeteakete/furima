@@ -11,7 +11,7 @@ import {
   submitBuyerReview,
   submitSellerReview,
   getRemainingDays,
-} from '../../lib/mockStore';
+} from '../../lib/supabaseStore';
 import { useStoreData } from '../../lib/useStore';
 
 export default function TransactionDetailPage() {

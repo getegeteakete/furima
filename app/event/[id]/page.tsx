@@ -14,7 +14,7 @@ import {
   StarIcon,
 } from '../../components/Icons';
 import { getTimeSlotEventById } from '../../lib/events';
-import { getBuyerActiveSession, CURRENT_MOCK_BUYER_ID } from '../../lib/mockStore';
+import { getBuyerActiveSession, CURRENT_MOCK_BUYER_ID } from '../../lib/supabaseStore';
 
 export default function EventDetailPage() {
   const params = useParams();

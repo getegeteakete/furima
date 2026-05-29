@@ -5,7 +5,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import { ArrowRightIcon, StarIcon, ClockIcon, ReceiptIcon } from '../components/Icons';
-import { getBuyerTransactions, getRemainingDays, CURRENT_MOCK_BUYER_ID } from '../lib/mockStore';
+import { getBuyerTransactions, getRemainingDays, CURRENT_MOCK_BUYER_ID } from '../lib/supabaseStore';
 import { useStoreData } from '../lib/useStore';
 import { useCallback } from 'react';
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createAdminEvent, getEventManagers } from '../../../lib/mockStore';
+import { createAdminEvent, getEventManagers } from '../../../lib/supabaseStore';
 import { useStoreData, PREFECTURES } from '../../../lib/useStore';
 import { CheckIcon } from '../../../components/Icons';
 

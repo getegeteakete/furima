@@ -9,7 +9,7 @@ import {
   updateSellerApplication,
   deleteAdminEvent,
   type AdminEventStatus,
-} from '../../../lib/mockStore';
+} from '../../../lib/supabaseStore';
 import { useStoreData } from '../../../lib/useStore';
 import {
   ArrowLeftIcon,

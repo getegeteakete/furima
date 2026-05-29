@@ -1,6 +1,6 @@
 'use client';
 
-import { getUsers, updateUserRole, type UserRole } from '../../lib/mockStore';
+import { getUsers, updateUserRole, type UserRole } from '../../lib/supabaseStore';
 import { useStoreData } from '../../lib/useStore';
 import { UserIcon } from '../../components/Icons';
 

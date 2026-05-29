@@ -1,6 +1,6 @@
 'use client';
 
-import { getChatSettings, updateChatSettings } from '../../lib/mockStore';
+import { getChatSettings, updateChatSettings } from '../../lib/supabaseStore';
 import { useStoreData } from '../../lib/useStore';
 import { ClockIcon, CheckIcon } from '../../components/Icons';
 import { useState } from 'react';

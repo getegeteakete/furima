@@ -20,7 +20,7 @@ import {
   createTransaction,
   CURRENT_MOCK_BUYER_ID,
   type ChatSettings,
-} from '../../../../lib/mockStore';
+} from '../../../../lib/supabaseStore';
 
 type Message = {
   id: number;

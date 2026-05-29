@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { getAdminEvents } from '../../lib/mockStore';
+import { getAdminEvents } from '../../lib/supabaseStore';
 import { useStoreData } from '../../lib/useStore';
 import { PlusIcon, ArrowRightIcon, UserIcon, StoreIcon } from '../../components/Icons';
 

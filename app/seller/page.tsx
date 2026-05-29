@@ -22,7 +22,7 @@ import {
   SendIcon,
 } from '../components/Icons';
 import type { ProductIconType } from '../components/Icons';
-import { getSellerTransactions, getRemainingDays } from '../lib/mockStore';
+import { getSellerTransactions, getRemainingDays } from '../lib/supabaseStore';
 import { useStoreData } from '../lib/useStore';
 
 type Tab = 'overview' | 'products' | 'events' | 'transactions' | 'analytics';
