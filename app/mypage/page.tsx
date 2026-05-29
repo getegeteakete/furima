@@ -5,13 +5,33 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import { ArrowRightIcon, StarIcon, ClockIcon, ReceiptIcon } from '../components/Icons';
-import { getBuyerTransactions, getRemainingDays, CURRENT_MOCK_BUYER_ID } from '../lib/supabaseStore';
+import { getBuyerTransactions, getRemainingDays } from '../lib/supabaseStore';
 import { useStoreData } from '../lib/useStore';
 import { useCallback } from 'react';
+import { useAuth } from '../components/AuthProvider';
 
 export default function MyPage() {
-  const getter = useCallback(() => getBuyerTransactions(CURRENT_MOCK_BUYER_ID), []);
+  const { user, profile, loading } = useAuth();
+  const buyerId = user?.id ?? '__none__';
+  const getter = useCallback(() => getBuyerTransactions(buyerId), [buyerId]);
   const [transactions] = useStoreData(getter);
+
+  // 未ログイン時はログイン誘導
+  if (!loading && !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header />
+        <main className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <p className="text-lg font-black text-gray-900 mb-2">ログインが必要です</p>
+          <p className="text-sm text-gray-500 mb-6">マイページの閲覧にはログインしてください</p>
+          <Link href="/login" className="px-6 py-3 bg-orange-600 text-white rounded-full font-bold text-sm hover:bg-orange-700 transition-colors">
+            ログインする
+          </Link>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -25,12 +45,23 @@ export default function MyPage() {
             <div className="space-y-4 text-gray-700">
               <div>
                 <p className="text-sm text-gray-600 font-bold mb-1">ユーザー名</p>
-                <p className="text-lg font-bold">山田太郎</p>
+                <p className="text-lg font-bold">{profile?.name ?? '—'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 font-bold mb-1">メールアドレス</p>
-                <p className="text-lg font-bold">yamada@example.com</p>
+                <p className="text-lg font-bold">{profile?.email ?? user?.email ?? '—'}</p>
               </div>
+              {profile?.role && (
+                <div>
+                  <p className="text-sm text-gray-600 font-bold mb-1">アカウント種別</p>
+                  <p className="text-lg font-bold">
+                    {profile.role === 'seller' ? '出店者'
+                      : profile.role === 'admin' ? '運営管理者'
+                      : profile.role === 'event_manager' ? 'イベント管理者'
+                      : '購入者'}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
