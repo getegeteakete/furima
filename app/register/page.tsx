@@ -2,14 +2,54 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { LineIcon, GoogleIcon, ArrowRightIcon, SparklesIcon } from '../components/Icons';
+import { useAuth } from '../components/AuthProvider';
 
 type UserType = 'buyer' | 'seller';
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const { signUp } = useAuth();
   const [userType, setUserType] = useState<UserType>('buyer');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async () => {
+    setError('');
+    setSuccess('');
+    if (!name || !email || !password) {
+      setError('すべての項目を入力してください');
+      return;
+    }
+    if (password.length < 8) {
+      setError('パスワードは8文字以上にしてください');
+      return;
+    }
+    if (!agreed) {
+      setError('利用規約への同意が必要です');
+      return;
+    }
+    setLoading(true);
+    const res = await signUp({ email, password, name, role: userType });
+    setLoading(false);
+    if (res.ok) {
+      setSuccess(res.message);
+      // 確認メール不要(即ログイン)の場合はマイページへ
+      if (res.message.includes('完了')) {
+        setTimeout(() => router.push('/mypage'), 800);
+      }
+    } else {
+      setError(res.message);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-50 flex flex-col">
@@ -18,7 +58,6 @@ export default function RegisterPage() {
       <main className="flex-1 flex items-center justify-center py-12 sm:py-16 lg:py-20">
         <div className="w-full max-w-md mx-auto px-4 sm:px-6">
           <div className="bg-white dark:bg-gray-950 rounded-3xl shadow-2xl overflow-hidden">
-            {/* Header */}
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 px-8 py-8 sm:py-10 text-white text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-white dark:bg-gray-950/20 backdrop-blur rounded-2xl mb-4">
                 <SparklesIcon size={32} stroke={1.5} />
@@ -27,15 +66,12 @@ export default function RegisterPage() {
               <p className="text-sm text-orange-100">フリマライブを始めましょう</p>
             </div>
 
-            {/* Tabs */}
             <div className="px-6 pt-6">
               <div className="flex bg-gray-100 rounded-full p-1.5">
                 <button
                   onClick={() => setUserType('buyer')}
                   className={`flex-1 py-3 rounded-full text-sm font-black transition-all ${
-                    userType === 'buyer'
-                      ? 'bg-orange-500 text-white shadow-md'
-                      : 'text-gray-600'
+                    userType === 'buyer' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600'
                   }`}
                 >
                   購入者として
@@ -43,9 +79,7 @@ export default function RegisterPage() {
                 <button
                   onClick={() => setUserType('seller')}
                   className={`flex-1 py-3 rounded-full text-sm font-black transition-all ${
-                    userType === 'seller'
-                      ? 'bg-orange-500 text-white shadow-md'
-                      : 'text-gray-600'
+                    userType === 'seller' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600'
                   }`}
                 >
                   出店者として
@@ -56,14 +90,26 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            {/* Form */}
             <div className="px-6 py-7 sm:py-8 space-y-5">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3">
+                  {success}
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">
                   お名前 / ショップ名
                 </label>
                 <input
                   type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder={userType === 'buyer' ? '田中 太郎' : 'mina.craft'}
                   className="w-full px-4 py-3.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
                 />
@@ -75,6 +121,8 @@ export default function RegisterPage() {
                 </label>
                 <input
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="your@email.com"
                   className="w-full px-4 py-3.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
                 />
@@ -86,36 +134,32 @@ export default function RegisterPage() {
                 </label>
                 <input
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="8文字以上"
                   className="w-full px-4 py-3.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors"
                 />
               </div>
 
-              {userType === 'seller' && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">
-                    地域
-                  </label>
-                  <select className="w-full px-4 py-3.5 border-2 border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:border-orange-500 focus:outline-none transition-colors bg-white dark:bg-gray-950">
-                    <option>選択してください</option>
-                    <option>北海道</option>
-                    <option>東京</option>
-                    <option>大阪</option>
-                    <option>京都</option>
-                    <option>福岡</option>
-                  </select>
-                </div>
-              )}
-
               <div className="flex items-start gap-2 pt-1">
-                <input type="checkbox" id="terms" className="mt-1 w-4 h-4 accent-orange-500" />
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-1 w-4 h-4 accent-orange-500"
+                />
                 <label htmlFor="terms" className="text-xs text-gray-600 leading-relaxed">
-                  <Link href="#" className="text-orange-600 font-bold underline">利用規約</Link> および <Link href="#" className="text-orange-600 font-bold underline">プライバシーポリシー</Link> に同意します
+                  <Link href="/terms" className="text-orange-600 font-bold underline">利用規約</Link> および <Link href="/privacy" className="text-orange-600 font-bold underline">プライバシーポリシー</Link> に同意します
                 </label>
               </div>
 
-              <button className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full font-black text-sm sm:text-base shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all active:scale-95">
-                登録する <ArrowRightIcon size={18} stroke={2.5} />
+              <button
+                onClick={handleRegister}
+                disabled={loading}
+                className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full font-black text-sm sm:text-base shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all active:scale-95 disabled:opacity-50"
+              >
+                {loading ? '登録中...' : <>登録する <ArrowRightIcon size={18} stroke={2.5} /></>}
               </button>
 
               <div className="flex items-center gap-3 my-5">

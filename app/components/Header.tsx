@@ -2,16 +2,26 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import SkipLink from './SkipLink';
 import ThemeToggle from './ThemeToggle';
 import NotificationDrawer from './NotificationDrawer';
 import { UserIcon, BellIcon, SearchIcon } from './Icons';
 import { useNotifications } from './NotificationContext';
+import { useAuth } from './AuthProvider';
 
 export default function Header() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const { unreadCount } = useNotifications();
+  const { user, profile, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    setOpen(false);
+    router.push('/');
+  };
 
   return (
     <>
@@ -64,15 +74,33 @@ export default function Header() {
               <Link href="/mypage" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-50 dark:bg-gray-800 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-gray-700 transition-colors">
                 <UserIcon size={20} stroke={1.5} />
               </Link>
-              <Link href="/login" className="text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
-                ログイン
-              </Link>
-              <Link
-                href="/register"
-                className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full text-sm font-bold shadow-md hover:shadow-xl hover:scale-105 transition-all dark:from-orange-600 dark:to-orange-700"
-              >
-                無料登録
-              </Link>
+              {user ? (
+                <>
+                  {profile && (profile.role === 'admin' || profile.role === 'event_manager') && (
+                    <Link href="/admin" className="text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+                      管理
+                    </Link>
+                  )}
+                  <button
+                    onClick={handleSignOut}
+                    className="text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
+                  >
+                    ログアウト
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors">
+                    ログイン
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full text-sm font-bold shadow-md hover:shadow-xl hover:scale-105 transition-all dark:from-orange-600 dark:to-orange-700"
+                  >
+                    無料登録
+                  </Link>
+                </>
+              )}
             </div>
 
           {/* Mobile menu button */}
@@ -115,16 +143,34 @@ export default function Header() {
             <Link href="/about" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95">使い方</Link>
             <Link href="/search" onClick={() => setOpen(false)} className="block py-4 px-5 text-base sm:text-lg font-bold text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-lg transition-colors active:scale-95">検索</Link>
             <div className="pt-4 px-5 border-t border-orange-100 dark:border-gray-800 mt-4 space-y-3">
-              <Link href="/login" onClick={() => setOpen(false)} className="block py-4 px-5 text-center text-base font-bold text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 rounded-full hover:border-orange-300 dark:hover:border-orange-500 transition-colors active:scale-95">
-                ログイン
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => setOpen(false)}
-                className="block py-4 px-5 text-center bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full text-base font-bold shadow-md hover:shadow-lg transition-all active:scale-95 dark:from-orange-600 dark:to-orange-700"
-              >
-                無料登録
-              </Link>
+              {user ? (
+                <>
+                  {profile && (profile.role === 'admin' || profile.role === 'event_manager') && (
+                    <Link href="/admin" onClick={() => setOpen(false)} className="block py-4 px-5 text-center text-base font-bold text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 rounded-full hover:border-orange-300 dark:hover:border-orange-500 transition-colors active:scale-95">
+                      運営管理
+                    </Link>
+                  )}
+                  <button
+                    onClick={handleSignOut}
+                    className="block w-full py-4 px-5 text-center text-base font-bold text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 rounded-full hover:border-orange-300 dark:hover:border-orange-500 transition-colors active:scale-95"
+                  >
+                    ログアウト
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setOpen(false)} className="block py-4 px-5 text-center text-base font-bold text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 rounded-full hover:border-orange-300 dark:hover:border-orange-500 transition-colors active:scale-95">
+                    ログイン
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setOpen(false)}
+                    className="block py-4 px-5 text-center bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full text-base font-bold shadow-md hover:shadow-lg transition-all active:scale-95 dark:from-orange-600 dark:to-orange-700"
+                  >
+                    無料登録
+                  </Link>
+                </>
+              )}
             </div>
           </nav>
         )}

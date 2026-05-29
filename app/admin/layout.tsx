@@ -10,6 +10,7 @@ import {
   PlusIcon,
   StoreIcon,
 } from '../components/Icons';
+import AuthGuard from '../components/AuthGuard';
 
 const NAV_ITEMS = [
   { href: '/admin', label: 'ダッシュボード', Icon: HomeIcon, exact: true },
@@ -23,6 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   return (
+    <AuthGuard allow={['admin', 'event_manager']}>
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <aside className="hidden lg:flex w-64 bg-gray-900 text-white flex-col fixed h-screen">
@@ -95,5 +97,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">{children}</div>
       </main>
     </div>
+    </AuthGuard>
   );
 }
