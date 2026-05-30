@@ -44,7 +44,8 @@ declare t text;
 begin
   foreach t in array array[
     'profiles','sellers','products','admin_events','seller_applications',
-    'buyer_reservations','chat_settings','active_sessions','transactions','messages'
+    'buyer_reservations','chat_settings','active_sessions','transactions','messages',
+    'notifications'
   ] loop
     execute format('drop policy if exists dev_all on public.%I;', t);
   end loop;
@@ -125,6 +126,19 @@ create policy messages_insert on public.messages
       or (sender_role = 'seller' and public.owns_shop(seller_id))
     )
   );
+
+-- ---------- notifications : 本人のみ閲覧/既読・配信はサーバー(service_role) ----------
+-- 受信者本人だけが自分の通知を読める/既読/削除できる。
+-- 作成(INSERT)は Cron/Edge の service_role が RLS をバイパスして行う想定。
+-- クライアントからの follow/like 等の自己宛て通知のみ本人INSERTを許可。
+create policy notifications_select_self on public.notifications
+  for select to authenticated using (user_id = auth.uid()::text or public.is_staff());
+create policy notifications_insert_self on public.notifications
+  for insert to authenticated with check (user_id = auth.uid()::text or public.is_staff());
+create policy notifications_update_self on public.notifications
+  for update to authenticated using (user_id = auth.uid()::text) with check (user_id = auth.uid()::text);
+create policy notifications_delete_self on public.notifications
+  for delete to authenticated using (user_id = auth.uid()::text or public.is_staff());
 
 -- =============================================================
 -- 📋 本番化チェックリスト（このファイルを適用する前後で必須）

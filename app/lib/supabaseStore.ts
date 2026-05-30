@@ -943,6 +943,156 @@ export async function uploadChatImages(
   return results;
 }
 
+// =============================================================
+// 通知（開催通知 / OPEN通知 / 順番通知 など）
+// -------------------------------------------------------------
+// notifications テーブル + Realtime。NotificationContext がこれを使う。
+// サーバー側（Cron）からの一斉配信は eventAutomation.ts が service_role
+// で行う（RLSバイパス）。クライアントは自分宛ての通知のみ作成/既読できる。
+// =============================================================
+export type AppNotificationType =
+  | 'open'
+  | 'event_start'
+  | 'turn'
+  | 'follow'
+  | 'like'
+  | 'info';
+
+export type AppNotification = {
+  id: string;
+  userId: string;
+  type: AppNotificationType;
+  title: string;
+  message: string;
+  eventId?: string;
+  eventName?: string;
+  read: boolean;
+  createdAt: string;
+};
+
+function rowToNotification(r: Row): AppNotification {
+  return {
+    id: r.id,
+    userId: r.user_id,
+    type: (r.type ?? 'info') as AppNotificationType,
+    title: r.title,
+    message: r.message ?? '',
+    eventId: r.event_id ?? undefined,
+    eventName: r.event_name ?? undefined,
+    read: r.read ?? false,
+    createdAt: r.created_at,
+  };
+}
+
+// 受信者の通知を新しい順に取得（直近100件）
+export async function fetchNotifications(userId: string): Promise<AppNotification[]> {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (error) {
+    persistError('fetchNotifications', error);
+    return [];
+  }
+  return (data ?? []).map(rowToNotification);
+}
+
+// 自分宛て通知を1件作成（follow/like や順番通知の自己記録などクライアント発火用）
+export async function createNotification(args: {
+  userId: string;
+  type: AppNotificationType;
+  title: string;
+  message?: string;
+  eventId?: string;
+  eventName?: string;
+  dedupeKey?: string;
+}): Promise<AppNotification | null> {
+  if (!args.userId) return null;
+  const payload = {
+    user_id: args.userId,
+    type: args.type,
+    title: args.title,
+    message: args.message ?? '',
+    event_id: args.eventId ?? null,
+    event_name: args.eventName ?? null,
+    dedupe_key: args.dedupeKey ?? null,
+  };
+  // dedupeKey 指定時は重複を無視（冪等）。それ以外は通常INSERT。
+  const query = args.dedupeKey
+    ? supabase
+        .from('notifications')
+        .upsert(payload, { onConflict: 'user_id,dedupe_key', ignoreDuplicates: true })
+        .select()
+        .maybeSingle()
+    : supabase.from('notifications').insert(payload).select().single();
+  const { data, error } = await query;
+  if (error) {
+    persistError('createNotification', error);
+    return null;
+  }
+  return data ? rowToNotification(data as Row) : null;
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  const { error } = await supabase.from('notifications').update({ read: true }).eq('id', id);
+  persistError('markNotificationRead', error);
+}
+
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  if (!userId) return;
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('user_id', userId)
+    .eq('read', false);
+  persistError('markAllNotificationsRead', error);
+}
+
+export async function deleteNotification(id: string): Promise<void> {
+  const { error } = await supabase.from('notifications').delete().eq('id', id);
+  persistError('deleteNotification', error);
+}
+
+export async function clearNotifications(userId: string): Promise<void> {
+  if (!userId) return;
+  const { error } = await supabase.from('notifications').delete().eq('user_id', userId);
+  persistError('clearNotifications', error);
+}
+
+// 受信者の通知を購読（自分宛ての INSERT / UPDATE / DELETE を受信）。
+// 変更があるたび onChange を呼ぶ（呼び出し側で再取得 or 受信行で更新）。
+export function subscribeToNotifications(
+  userId: string,
+  onChange: (change: { eventType: string; row: AppNotification | null; oldId?: string }) => void,
+): () => void {
+  if (!userId) return () => {};
+  const channel = supabase
+    .channel(`notifications-${userId}-${Math.random().toString(36).slice(2, 8)}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => {
+        const newRow = payload.new && Object.keys(payload.new).length
+          ? rowToNotification(payload.new as Row)
+          : null;
+        const oldId = (payload.old as Row | undefined)?.id as string | undefined;
+        onChange({ eventType: payload.eventType, row: newRow, oldId });
+      },
+    )
+    .subscribe();
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
 // 開発用リセットは Supabase 版では非対応（DBはダッシュボードで管理）
 export function resetMockStore(): void {
   console.warn('[supabaseStore] resetMockStore は Supabase 版では無効です。');

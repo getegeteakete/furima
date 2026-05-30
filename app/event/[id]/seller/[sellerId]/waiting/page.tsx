@@ -20,6 +20,7 @@ import { getSellerById } from '../../../../../lib/events';
 import { getPublicEventById, reserveAsBuyer, CURRENT_MOCK_BUYER_ID } from '../../../../../lib/supabaseStore';
 import { useStoreData } from '../../../../../lib/useStore';
 import { useAuth } from '../../../../../components/AuthProvider';
+import { useNotifications } from '../../../../../components/NotificationContext';
 
 export default function WaitingPage() {
   const params = useParams();
@@ -37,6 +38,7 @@ export default function WaitingPage() {
 
   // ログイン中の購入者で来場予約を記録（成立判定の予約数に反映）
   const { profile } = useAuth();
+  const { addNotification } = useNotifications();
   const buyerId = profile?.id ?? CURRENT_MOCK_BUYER_ID;
   const reservedRef = useRef(false);
   useEffect(() => {
@@ -45,6 +47,20 @@ export default function WaitingPage() {
     reservedRef.current = true;
     reserveAsBuyer(eventId, buyerId);
   }, [event, eventId, buyerId]);
+
+  // 順番が来たら通知履歴に1回だけ記録（OPEN/開催はサーバーCronが配信）
+  const turnNotifiedRef = useRef(false);
+  useEffect(() => {
+    if (!signalReceived || turnNotifiedRef.current || !seller || !event) return;
+    turnNotifiedRef.current = true;
+    addNotification({
+      type: 'turn',
+      title: '順番通知',
+      message: `${seller.name} の順番が来ました。チャットを開始できます。`,
+      eventName: seller.name,
+      eventId,
+    });
+  }, [signalReceived, seller, event, eventId, addNotification]);
 
   useEffect(() => {
     if (signalReceived) return;

@@ -14,12 +14,17 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const OPEN_THRESHOLD = { minReservations: 3, minChatAccounts: 3 } as const;
 
+// 開催リマインド（開催通知）を送る時間窓: 開始◯分前〜開始時刻
+export const REMIND_WINDOW_MIN = 60;
+
 type AdminEventRow = {
   id: string;
   date: string; // YYYY-MM-DD
   start_time: string; // HH:mm
   end_time: string; // HH:mm
   status: string;
+  title: string;
+  region: string;
 };
 
 export type EventActionLog = {
@@ -67,6 +72,56 @@ async function countReservations(
   return count ?? 0;
 }
 
+// 指定イベントを予約した購入者ID一覧
+async function fetchReservedBuyerIds(
+  supabase: SupabaseClient,
+  eventId: string,
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('buyer_reservations')
+    .select('buyer_id')
+    .eq('event_id', eventId);
+  if (error) throw error;
+  return (data ?? []).map((r) => r.buyer_id as string).filter(Boolean);
+}
+
+type NotifyTemplate = {
+  type: 'open' | 'event_start';
+  title: string;
+  message: string;
+  dedupePrefix: string; // 'open' / 'reminder' など
+};
+
+// 予約者全員へ通知を冪等配信（user_id + dedupe_key で重複防止）。
+// service_role 前提（RLSバイパス）。送信できた件数を返す。
+async function notifyReservedBuyers(
+  supabase: SupabaseClient,
+  event: AdminEventRow,
+  tmpl: NotifyTemplate,
+): Promise<number> {
+  const buyerIds = await fetchReservedBuyerIds(supabase, event.id);
+  if (buyerIds.length === 0) return 0;
+  const dedupeKey = `${tmpl.dedupePrefix}:${event.id}`;
+  const rows = buyerIds.map((uid) => ({
+    user_id: uid,
+    type: tmpl.type,
+    title: tmpl.title,
+    message: tmpl.message,
+    event_id: event.id,
+    event_name: event.title,
+    dedupe_key: dedupeKey,
+  }));
+  const { error } = await supabase
+    .from('notifications')
+    .upsert(rows, { onConflict: 'user_id,dedupe_key', ignoreDuplicates: true });
+  if (error) {
+    // 通知失敗は自動進行本体を止めない（ログのみ）
+    console.error('[eventAutomation] notifyReservedBuyers failed:', error.message);
+    return 0;
+  }
+  return rows.length;
+}
+
 // 1回の自動進行サイクルを実行し、行ったアクションのログを返す
 export async function runEventAutomation(
   supabase: SupabaseClient,
@@ -75,7 +130,7 @@ export async function runEventAutomation(
   // 進行管理の対象になり得るイベントのみ取得
   const { data, error } = await supabase
     .from('admin_events')
-    .select('id, date, start_time, end_time, status')
+    .select('id, date, start_time, end_time, status, title, region')
     .in('status', ['recruiting', 'seller_closed', 'live']);
   if (error) throw error;
 
@@ -98,6 +153,28 @@ export async function runEventAutomation(
       continue;
     }
 
+    // 1.5) 開催リマインド（開催通知）: 開始 REMIND_WINDOW_MIN 分前〜開始時刻の間で、
+    //      まだ開催前(recruiting/seller_closed)のイベントの予約者へ1回だけ通知。
+    if (e.status === 'recruiting' || e.status === 'seller_closed') {
+      const remindFrom = new Date(start.getTime() - REMIND_WINDOW_MIN * 60 * 1000);
+      if (now >= remindFrom && now < start) {
+        const sent = await notifyReservedBuyers(supabase, e, {
+          type: 'event_start',
+          title: '開催通知',
+          message: `${e.title} がまもなくOPENします（${e.start_time} 開始予定）。`,
+          dedupePrefix: 'reminder',
+        });
+        if (sent > 0) {
+          actions.push({
+            eventId: e.id,
+            from: e.status,
+            to: e.status,
+            reason: `開催リマインド配信（予約者${sent}名へ・冪等）`,
+          });
+        }
+      }
+    }
+
     // 2) 開催前のイベントが開始時刻を迎えたら、成立条件を満たす場合のみ live に
     if ((e.status === 'recruiting' || e.status === 'seller_closed') && now >= start && now < end) {
       const [reservations, chatAccounts] = await Promise.all([
@@ -118,6 +195,13 @@ export async function runEventAutomation(
             from: e.status,
             to: 'live',
             reason: `成立条件クリア（予約${reservations} / チャット${chatAccounts}）`,
+          });
+          // OPEN通知: 予約者全員へ（冪等）
+          await notifyReservedBuyers(supabase, e, {
+            type: 'open',
+            title: 'OPEN通知',
+            message: `${e.title} がOPENしました！接客チャットに参加できます。`,
+            dedupePrefix: 'open',
           });
         }
       } else {
