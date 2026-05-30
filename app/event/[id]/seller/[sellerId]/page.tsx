@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import Link from 'next/link';
 import {
   ProductIcon,
@@ -19,17 +19,44 @@ import {
   endSession,
   createTransaction,
   CURRENT_MOCK_BUYER_ID,
+  fetchRoomMessages,
+  sendChatMessage,
+  subscribeToRoom,
   type ChatSettings,
+  type ChatRoomMessage,
 } from '../../../../lib/supabaseStore';
+import { useAuth } from '../../../../components/AuthProvider';
 
 type Message = {
-  id: number;
+  id: string;
   text: string;
   sender: 'me' | 'shop' | 'system';
   timestamp: string;
   productId?: number;
   images?: string[]; // ⑧ 画像URL（dataURL）
 };
+
+// HH:mm 整形
+function fmtTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+}
+
+// DBの ChatRoomMessage → 画面表示用 Message（閲覧者視点で me/shop を判定）
+function toMessage(m: ChatRoomMessage, viewerId: string): Message {
+  const sender: Message['sender'] =
+    m.senderRole === 'system'
+      ? 'system'
+      : m.senderRole === 'buyer' && m.senderId === viewerId
+        ? 'me'
+        : 'shop';
+  return {
+    id: m.id,
+    text: m.text,
+    sender,
+    timestamp: fmtTime(m.createdAt),
+    images: m.images.length > 0 ? m.images : undefined,
+  };
+}
 
 export default function ChatRoomPage() {
   const params = useParams();
@@ -38,19 +65,6 @@ export default function ChatRoomPage() {
   const sellerId = params.sellerId as string;
   const event = getTimeSlotEventById(eventId);
   const seller = getSellerById(sellerId);
-
-  if (!event || !seller) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="container-main py-20 text-center">
-          <p className="text-xl text-gray-600">イベントまたは出店者が見つかりません</p>
-          <Link href="/events" className="inline-block mt-6 text-orange-600 font-bold">
-            ← イベント一覧へ戻る
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   const [products, setProducts] = useState<(Product & { soldOut: boolean })[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -66,67 +80,79 @@ export default function ChatRoomPage() {
   const [selectedImages, setSelectedImages] = useState<{ id: string; dataUrl: string }[]>([]); // ⑧
   const [reRequested, setReRequested] = useState(false); // ⑨ 再リクエスト
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [publicMessages, setPublicMessages] = useState<Message[]>([
-    {
-      id: 1,
-      text: `${seller.name} がOPENしました！`,
-      sender: 'system',
-      timestamp: event.startTime,
-    },
-    {
-      id: 2,
-      text: `${seller.name} の商品が素敵ですね！`,
-      sender: 'shop',
-      timestamp: `${parseInt(event.startTime.split(':')[0]) + 1}:00`,
-    },
-    {
-      id: 3,
-      text: 'ネックレスってどのくらい販売されてますか？',
-      sender: 'shop',
-      timestamp: '20:02',
-    },
-    {
-      id: 4,
-      text: '天然石のものは人気ですね',
-      sender: 'shop',
-      timestamp: '20:03',
-    },
-    {
-      id: 5,
-      text: '今日も多くのお客様にご来場いただきありがとうございます！',
-      sender: 'shop',
-      timestamp: '20:04',
-    },
-  ]);
+  const [publicMessages, setPublicMessages] = useState<Message[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // ログイン中の購入者の識別情報（未ログイン時はデモ購入者にフォールバック）
+  const { profile } = useAuth();
+  const buyerId = profile?.id ?? CURRENT_MOCK_BUYER_ID;
+  const buyerName = profile?.name ?? '山田太郎';
 
   useEffect(() => {
     if (seller) {
       setProducts(seller.products.map((p) => ({ ...p, soldOut: false })));
       setSelectedProduct(seller.products[0]);
-
-      setMessages([
-        {
-          id: 1,
-          text: '接客が開始されました。10分間ごゆっくりお楽しみください！',
-          sender: 'system',
-          timestamp: event.startTime,
-        },
-        {
-          id: 2,
-          text: `こんにちは！${seller.name}です。本日はお越しいただきありがとうございます`,
-          sender: 'shop',
-          timestamp: event.startTime,
-        },
-        {
-          id: 3,
-          text: '気になる商品があれば、上のリストからタップしてください。商品の詳細やお値段相談もOKです！',
-          sender: 'shop',
-          timestamp: event.startTime,
-        },
-      ]);
     }
-  }, [seller, event]);
+  }, [seller]);
+
+  // 重複なしで追記（Realtime のエコーと楽観追加の二重表示を防ぐ）
+  const appendUnique = (
+    setter: Dispatch<SetStateAction<Message[]>>,
+    msg: Message,
+  ) => setter((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+
+  // 個別チャット & 全体チャットの履歴読み込み + Realtime購読
+  useEffect(() => {
+    if (!event || !seller) return;
+    let active = true;
+
+    // 履歴の読み込み（個別 / 全体）
+    (async () => {
+      const [priv, pub] = await Promise.all([
+        fetchRoomMessages(event.id, seller.id, buyerId),
+        fetchRoomMessages(event.id, null, null),
+      ]);
+      if (!active) return;
+      setMessages(
+        priv.length > 0
+          ? priv.map((m) => toMessage(m, buyerId))
+          : [
+              {
+                id: 'welcome-private',
+                text: `接客が開始されました。${seller.name} とのマンツーマンチャットです。ごゆっくりどうぞ！`,
+                sender: 'system',
+                timestamp: event.startTime,
+              },
+            ],
+      );
+      setPublicMessages(
+        pub.length > 0
+          ? pub.map((m) => toMessage(m, buyerId))
+          : [
+              {
+                id: 'welcome-public',
+                text: `${seller.name} がOPENしました！`,
+                sender: 'system',
+                timestamp: event.startTime,
+              },
+            ],
+      );
+    })();
+
+    // Realtime購読（個別 / 全体）
+    const unsubPrivate = subscribeToRoom(event.id, seller.id, buyerId, (m) =>
+      appendUnique(setMessages, toMessage(m, buyerId)),
+    );
+    const unsubPublic = subscribeToRoom(event.id, null, null, (m) =>
+      appendUnique(setPublicMessages, toMessage(m, buyerId)),
+    );
+
+    return () => {
+      active = false;
+      unsubPrivate();
+      unsubPublic();
+    };
+  }, [event, seller, buyerId]);
 
   // ⑧⑨ チャット設定を読み込み + ⑥ セッション開始（ロック取得）
   useEffect(() => {
@@ -169,7 +195,7 @@ export default function ChatRoomPage() {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, publicMessages, chatTab]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -223,111 +249,102 @@ export default function ChatRoomPage() {
     setReRequested(true);
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if ((!input.trim() && selectedImages.length === 0) || sessionEnded) return;
+    if (!event || !seller) return;
 
-    const newMessage: Message = {
-      id: messages.length + 1,
-      text: input.trim(),
-      sender: 'me',
-      timestamp: new Date().toTimeString().slice(0, 5),
-      images: selectedImages.length > 0 ? selectedImages.map((i) => i.dataUrl) : undefined,
-    };
-    setMessages((prev) => [...prev, newMessage]);
+    const text = input.trim();
+    const images = selectedImages.map((i) => i.dataUrl);
     setInput('');
     setSelectedImages([]);
 
-    setTimeout(() => {
-      const replies = [
-        'ありがとうございます',
-        'こちらの商品、人気なんですよ',
-        '在庫はまだございます！',
-        'ご質問あればお気軽に',
-        '値段相談も承ります',
-        'まとめ買いだとお値引きできますよ',
-        '素敵なお写真ありがとうございます！',
-      ];
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          text: replies[Math.floor(Math.random() * replies.length)],
-          sender: 'shop',
-          timestamp: new Date().toTimeString().slice(0, 5),
-        },
-      ]);
-    }, 1200);
+    // 実DBへ送信（Realtime購読が自分の挿入も受信して画面へ反映。appendUniqueで重複防止）
+    const saved = await sendChatMessage({
+      eventId: event.id,
+      sellerId: seller.id,
+      buyerId,
+      senderRole: 'buyer',
+      senderId: buyerId,
+      senderName: buyerName,
+      text,
+      images,
+    });
+    // 楽観表示（Realtimeが遅延/失敗しても即時に見える。idはDB採番のものを使用）
+    if (saved) appendUnique(setMessages, toMessage(saved, buyerId));
   };
 
-  const askAboutProduct = (product: Product) => {
+  const askAboutProduct = async (product: Product) => {
     setSelectedProduct(product);
-    const askMessage: Message = {
-      id: messages.length + 1,
+    if (!event || !seller) return;
+    const saved = await sendChatMessage({
+      eventId: event.id,
+      sellerId: seller.id,
+      buyerId,
+      senderRole: 'buyer',
+      senderId: buyerId,
+      senderName: buyerName,
       text: `「${product.name}」について教えてください！`,
-      sender: 'me',
-      timestamp: new Date().toTimeString().slice(0, 5),
-      productId: product.id,
-    };
-    setMessages((prev) => [...prev, askMessage]);
-
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          text: `「${product.name}」ですね！${product.description}。¥${product.price.toLocaleString()}でいかがでしょうか？`,
-          sender: 'shop',
-          timestamp: new Date().toTimeString().slice(0, 5),
-        },
-      ]);
-    }, 800);
+    });
+    if (saved) {
+      const msg = toMessage(saved, buyerId);
+      appendUnique(setMessages, { ...msg, productId: product.id });
+    }
   };
 
-  const purchaseProduct = () => {
-    if (!selectedProduct) return;
+  const purchaseProduct = async () => {
+    if (!selectedProduct || !event || !seller) return;
     setShowPurchaseModal(false);
 
     setProducts((prev) =>
       prev.map((p) => (p.id === selectedProduct.id ? { ...p, soldOut: true } : p))
     );
 
-    const purchaseMessages: Message[] = [
-      {
-        id: messages.length + 1,
-        text: `「${selectedProduct.name}」を購入確定しました！`,
-        sender: 'me',
-        timestamp: new Date().toTimeString().slice(0, 5),
-      },
-      {
-        id: messages.length + 2,
-        text: `ご購入ありがとうございます！後ほど住所等のご連絡をお願いします。商品は SOLD OUT 表示に変更しました。`,
-        sender: 'shop',
-        timestamp: new Date().toTimeString().slice(0, 5),
-      },
-    ];
-    setMessages((prev) => [...prev, ...purchaseMessages]);
+    // 購入確定の連絡を実チャットへ送信（出店者にリアルタイムで届く）
+    const saved = await sendChatMessage({
+      eventId: event.id,
+      sellerId: seller.id,
+      buyerId,
+      senderRole: 'buyer',
+      senderId: buyerId,
+      senderName: buyerName,
+      text: `「${selectedProduct.name}」を購入確定しました！住所等のご連絡をお願いします。`,
+    });
+    if (saved) appendUnique(setMessages, toMessage(saved, buyerId));
 
-    // ① 取引履歴に記録（チャット内容含む・7日間閲覧可能）
-    if (event && seller) {
-      const allMessages = [...messages, ...purchaseMessages];
-      createTransaction({
-        eventId: event.id,
-        eventTitle: `${event.startTime}〜${event.endTime} ${event.region}`,
-        sellerId: seller.id,
-        sellerName: seller.name,
-        buyerId: CURRENT_MOCK_BUYER_ID,
-        buyerName: '山田太郎',
-        productName: selectedProduct.name,
-        productPrice: selectedProduct.price,
-        messages: allMessages.map((m) => ({
-          text: m.text,
-          sender: m.sender === 'me' ? 'buyer' : 'seller',
-          timestamp: m.timestamp,
-          images: m.images,
-        })),
-      });
-    }
+    // ① 取引履歴に記録（接客チャットの内容をスナップショット・継続会話の起点）
+    const snapshot = [...messages, ...(saved ? [toMessage(saved, buyerId)] : [])]
+      .filter((m) => m.sender !== 'system')
+      .map((m) => ({
+        text: m.text,
+        sender: (m.sender === 'me' ? 'buyer' : 'seller') as 'buyer' | 'seller',
+        timestamp: m.timestamp,
+        images: m.images,
+      }));
+    createTransaction({
+      eventId: event.id,
+      eventTitle: `${event.startTime}〜${event.endTime} ${event.region}`,
+      sellerId: seller.id,
+      sellerName: seller.name,
+      buyerId,
+      buyerName,
+      productName: selectedProduct.name,
+      productPrice: selectedProduct.price,
+      messages: snapshot,
+    });
   };
+
+  if (!event || !seller) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="container-main py-20 text-center">
+          <p className="text-xl text-gray-600">イベントまたは出店者が見つかりません</p>
+          <Link href="/events" className="inline-block mt-6 text-orange-600 font-bold">
+            ← イベント一覧へ戻る
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!event || !selectedProduct) return null;
 

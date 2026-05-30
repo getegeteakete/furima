@@ -574,6 +574,196 @@ export function submitSellerReview(transactionId: string, review: Review): void 
     .then(({ error }) => persistError('submitSellerReview', error));
 }
 
+// =============================================================
+// リアルタイムチャット（messages テーブル）
+// -------------------------------------------------------------
+// ルームの定義（schema 準拠）:
+//   全体チャット : event_id + seller_id IS NULL + buyer_id IS NULL
+//   個別チャット : event_id + seller_id + buyer_id（出店者⇔購入者 1対1）
+// 取引履歴チャット(transactions.messages)とは別物。こちらは「開催中の接客」用。
+// =============================================================
+export type ChatRoomMessage = {
+  id: string;
+  eventId: string;
+  sellerId: string | null; // NULL = 全体チャット
+  buyerId: string | null;
+  senderRole: 'buyer' | 'seller' | 'system';
+  senderId: string | null;
+  senderName: string | null;
+  text: string;
+  images: string[];
+  createdAt: string;
+};
+
+type MessageRow = {
+  id: string;
+  event_id: string;
+  seller_id: string | null;
+  buyer_id: string | null;
+  sender_role: 'buyer' | 'seller' | 'system';
+  sender_id: string | null;
+  sender_name: string | null;
+  text: string | null;
+  images: string[] | null;
+  created_at: string;
+};
+
+function rowToChatMessage(r: MessageRow): ChatRoomMessage {
+  return {
+    id: r.id,
+    eventId: r.event_id,
+    sellerId: r.seller_id,
+    buyerId: r.buyer_id,
+    senderRole: r.sender_role,
+    senderId: r.sender_id,
+    senderName: r.sender_name,
+    text: r.text ?? '',
+    images: r.images ?? [],
+    createdAt: r.created_at,
+  };
+}
+
+// 指定ルームの履歴を古い順で取得
+export async function fetchRoomMessages(
+  eventId: string,
+  sellerId: string | null,
+  buyerId: string | null,
+): Promise<ChatRoomMessage[]> {
+  let q = supabase
+    .from('messages')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('created_at', { ascending: true });
+  q = sellerId === null ? q.is('seller_id', null) : q.eq('seller_id', sellerId);
+  q = buyerId === null ? q.is('buyer_id', null) : q.eq('buyer_id', buyerId);
+  const { data, error } = await q;
+  if (error) {
+    persistError('fetchRoomMessages', error);
+    return [];
+  }
+  return (data ?? []).map((d) => rowToChatMessage(d as MessageRow));
+}
+
+// メッセージを送信（成功時は挿入された行を返す＝楽観表示に使える）
+export async function sendChatMessage(args: {
+  eventId: string;
+  sellerId: string | null;
+  buyerId: string | null;
+  senderRole: 'buyer' | 'seller' | 'system';
+  senderId?: string | null;
+  senderName?: string | null;
+  text?: string;
+  images?: string[];
+}): Promise<ChatRoomMessage | null> {
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      event_id: args.eventId,
+      seller_id: args.sellerId,
+      buyer_id: args.buyerId,
+      sender_role: args.senderRole,
+      sender_id: args.senderId ?? null,
+      sender_name: args.senderName ?? null,
+      text: args.text ?? '',
+      images: args.images ?? [],
+    })
+    .select()
+    .single();
+  if (error) {
+    persistError('sendChatMessage', error);
+    return null;
+  }
+  return rowToChatMessage(data as MessageRow);
+}
+
+// 1つのチャットルームを購読（新着 INSERT を受信）
+// Realtime の postgres_changes は単一の等値フィルタのみ確実に効くため、
+// サーバ側は event_id で絞り、seller_id / buyer_id の一致はクライアントで判定する。
+export function subscribeToRoom(
+  eventId: string,
+  sellerId: string | null,
+  buyerId: string | null,
+  onInsert: (msg: ChatRoomMessage) => void,
+): () => void {
+  const roomKey = `${eventId}:${sellerId ?? 'ALL'}:${buyerId ?? 'ALL'}`;
+  const channel = supabase
+    .channel(`room-${roomKey}-${Math.random().toString(36).slice(2, 8)}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `event_id=eq.${eventId}`,
+      },
+      (payload) => {
+        const r = payload.new as MessageRow;
+        const sellerMatch = (r.seller_id ?? null) === sellerId;
+        const buyerMatch = (r.buyer_id ?? null) === buyerId;
+        if (sellerMatch && buyerMatch) onInsert(rowToChatMessage(r));
+      },
+    )
+    .subscribe();
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+// 出店者の個別ルームに参加している購入者一覧（最新メッセージ付き・更新が新しい順）
+export async function fetchSellerRoomBuyers(
+  eventId: string,
+  sellerId: string,
+): Promise<{ buyerId: string; buyerName: string | null; lastText: string; lastAt: string }[]> {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('event_id', eventId)
+    .eq('seller_id', sellerId)
+    .not('buyer_id', 'is', null)
+    .order('created_at', { ascending: true });
+  if (error) {
+    persistError('fetchSellerRoomBuyers', error);
+    return [];
+  }
+  const map = new Map<string, { buyerId: string; buyerName: string | null; lastText: string; lastAt: string }>();
+  for (const d of data ?? []) {
+    const r = d as MessageRow;
+    if (!r.buyer_id) continue;
+    const prev = map.get(r.buyer_id);
+    const buyerName =
+      r.sender_role === 'buyer' && r.sender_name ? r.sender_name : (prev?.buyerName ?? null);
+    map.set(r.buyer_id, {
+      buyerId: r.buyer_id,
+      buyerName,
+      lastText: r.text ?? '',
+      lastAt: r.created_at,
+    });
+  }
+  return Array.from(map.values()).sort((a, b) => (a.lastAt < b.lastAt ? 1 : -1));
+}
+
+// 出店者の全個別ルームを購読（どの購入者からの新着でも受信）
+export function subscribeToSellerPrivate(
+  eventId: string,
+  sellerId: string,
+  onInsert: (msg: ChatRoomMessage) => void,
+): () => void {
+  const channel = supabase
+    .channel(`seller-${eventId}-${sellerId}-${Math.random().toString(36).slice(2, 8)}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages', filter: `event_id=eq.${eventId}` },
+      (payload) => {
+        const r = payload.new as MessageRow;
+        if (r.seller_id === sellerId && r.buyer_id) onInsert(rowToChatMessage(r));
+      },
+    )
+    .subscribe();
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
 // 開発用リセットは Supabase 版では非対応（DBはダッシュボードで管理）
 export function resetMockStore(): void {
   console.warn('[supabaseStore] resetMockStore は Supabase 版では無効です。');

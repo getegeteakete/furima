@@ -107,6 +107,28 @@ export default function SellerPage() {
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-8 lg:space-y-10">
+              {/* ライブ接客コンソールへの導線 */}
+              <Link
+                href="/event/2000-shiga/seller/mina-craft/console"
+                className="block bg-gradient-to-r from-orange-500 to-orange-600 rounded-3xl p-6 sm:p-7 text-white hover:shadow-lg transition-all active:scale-[0.99]"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="inline-block w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
+                      <span className="text-xs font-bold opacity-90">開催中イベント</span>
+                    </div>
+                    <p className="text-lg sm:text-xl font-black leading-tight">ライブ接客を開始する</p>
+                    <p className="text-sm opacity-90 mt-1">
+                      全体チャット・個別接客をリアルタイムで対応できます
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                    <SendIcon size={24} stroke={2} />
+                  </div>
+                </div>
+              </Link>
+
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
                 {[
