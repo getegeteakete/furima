@@ -48,6 +48,12 @@ Supabase: 接続済み（URL: https://cccspbtjseallretqguz.supabase.co）
 - 既存: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - ⚠️ これが無いと Cron が 401/500 → **OPEN通知・開催通知が一切配信されない**
 
+### ★今回NEW★ ③-b メール通知を使うなら Resend の環境変数（任意）
+- `RESEND_API_KEY`（resend.com で発行）
+- `RESEND_FROM`（例 `フリマライブ <noreply@検証済みドメイン>`・要ドメイン検証）
+- 任意: `NEXT_PUBLIC_SITE_URL`（メール内リンク用・既定 https://furima.vercel.app）
+- 未設定でも **in-app通知は動く**（メール送信だけスキップされる）
+
 ### ④ Vercel の Overdue（未払い）解決（未解決なら自動デプロイ・Cronが動かない）
 - Settings → Billing で支払い／カード更新 → 最新コミットを Redeploy
 
@@ -88,13 +94,27 @@ Supabase の `notifications` テーブル + Realtime に置き換え、「実際
 
 ---
 
+### ✅ メール通知（Resend）（完了・要環境変数）★追加実装★
+in-app通知の作成を契機に、予約者へメールも届くようにした。
+- `app/lib/notify/email.ts` — Resend REST APIを fetch で叩く送信ヘルパー（npm依存なし）
+  - `RESEND_API_KEY` / `RESEND_FROM` 未設定なら送信スキップ（in-app通知は動く）
+  - `buildNotificationEmail()` でHTMLメール本文（イベントへのリンク付き）を生成
+- `eventAutomation.ts` の配信に統合
+  - upsert(`ignoreDuplicates`)の `.select()` が返す**新規挿入分の受信者だけ**にメール送信
+    → 同じ人への二重送信を防止（in-app と同じ冪等境界）
+  - profiles からメールアドレスを引き、Resend へ最大50宛先/リクエストで分割送信
+  - 送信失敗は自動進行を止めずログのみ（Promise.allSettled）
+- 対象: OPEN通知 / 開催通知（サーバー発火）。順番通知はin-appのみ（クライアント発火のため）
+
+---
+
 ## ⏳ 未着手・次にやるべきこと（優先順）
 
 ### 🥇 高優先
 ```
-1. LINE通知・メール通知（in-app通知は実装済 → 外部配信へ）
-   - notifications 行作成を契機に Edge Function or Resend でLINE/メール送信
-   - まずはメール（Resend）が早い。LINE Messaging API は友だち追加導線が前提
+1. LINE通知（メールは実装済 → LINE Messaging API へ）
+   - 友だち追加導線 + チャネルアクセストークン + Webhook が前提
+   - notifications 行作成を契機に email と同様 push する設計に乗せられる
 
 2. 商品画像・プロフィール画像も Storage へ（chat-images と同パターン）
    - バケット: product-images, avatars
@@ -102,6 +122,8 @@ Supabase の `notifications` テーブル + Realtime に置き換え、「実際
 3. 商品データの本接続
    - 出店者の商品はまだ events.ts 静的マスタ依存。products テーブル経由へ
    - 商品登録/在庫/SOLD OUT を products に
+   - ⚠️ 表示が5ページ（event/seller/search/favorites等）に跨り規模大。
+     本番DBで検証できる状態にしてから着手が安全
 ```
 
 ### 🥈 通常
@@ -138,8 +160,9 @@ furima/
 ├── app/
 │   ├── components/NotificationContext.tsx  # 🔁 Supabase連携+Realtimeに刷新
 │   ├── lib/
+│   │   ├── notify/email.ts            # 🆕 Resendメール送信(server-only・依存なし)
 │   │   ├── supabaseStore.ts           # 通知CRUD + subscribeToNotifications 追加
-│   │   └── eventAutomation.ts         # OPEN通知/開催通知の冪等配信を追加
+│   │   └── eventAutomation.ts         # OPEN/開催通知の冪等配信 + 新規分のみメール送信
 │   └── event/[id]/seller/[sellerId]/waiting/page.tsx  # 順番通知を記録
 ```
 

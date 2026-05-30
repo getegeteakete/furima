@@ -1,5 +1,6 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { sendEmail, buildNotificationEmail, isEmailConfigured } from './notify/email';
 
 // =============================================================
 // イベント自動進行エンジン（サーバー専用）
@@ -111,15 +112,61 @@ async function notifyReservedBuyers(
     event_name: event.title,
     dedupe_key: dedupeKey,
   }));
-  const { error } = await supabase
+  const { data: inserted, error } = await supabase
     .from('notifications')
-    .upsert(rows, { onConflict: 'user_id,dedupe_key', ignoreDuplicates: true });
+    .upsert(rows, { onConflict: 'user_id,dedupe_key', ignoreDuplicates: true })
+    .select('user_id');
   if (error) {
     // 通知失敗は自動進行本体を止めない（ログのみ）
     console.error('[eventAutomation] notifyReservedBuyers failed:', error.message);
     return 0;
   }
-  return rows.length;
+
+  // ignoreDuplicates: true のため select は「今回新規に入った行」だけを返す。
+  // = まだ通知していない受信者。この人たちにのみメールを送る（重複送信を防止）。
+  const newRecipientIds = (inserted ?? []).map((r) => r.user_id as string).filter(Boolean);
+  if (newRecipientIds.length > 0 && isEmailConfigured()) {
+    await sendNotificationEmails(supabase, newRecipientIds, {
+      title: tmpl.title,
+      message: tmpl.message,
+      eventId: event.id,
+    });
+  }
+  return newRecipientIds.length;
+}
+
+// 受信者ID群のメールアドレスを引いて通知メールを送る（失敗は握りつぶしログのみ）
+async function sendNotificationEmails(
+  supabase: SupabaseClient,
+  userIds: string[],
+  notif: { title: string; message: string; eventId?: string },
+): Promise<void> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('email')
+    .in('id', userIds);
+  if (error) {
+    console.error('[eventAutomation] fetch emails failed:', error.message);
+    return;
+  }
+  const emails = (data ?? [])
+    .map((r) => r.email as string | null)
+    .filter((e): e is string => Boolean(e));
+  if (emails.length === 0) return;
+  const { subject, html } = buildNotificationEmail(notif);
+  // Resend は to に配列で複数指定可。多数の場合は分割（1リクエスト最大50宛先）。
+  const CHUNK = 50;
+  const chunks: string[][] = [];
+  for (let i = 0; i < emails.length; i += CHUNK) chunks.push(emails.slice(i, i + CHUNK));
+  const results = await Promise.allSettled(
+    chunks.map((to) => sendEmail({ to, subject, html })),
+  );
+  const failed = results.filter(
+    (r) => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok && !r.value.skipped),
+  ).length;
+  if (failed > 0) {
+    console.error(`[eventAutomation] email send: ${failed}/${chunks.length} chunk(s) failed`);
+  }
 }
 
 // 1回の自動進行サイクルを実行し、行ったアクションのログを返す
