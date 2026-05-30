@@ -17,6 +17,7 @@ import {
   getChatSettings,
   startSession,
   endSession,
+  completeQueueTicket,
   createTransaction,
   CURRENT_MOCK_BUYER_ID,
   getPublicEventById,
@@ -93,6 +94,11 @@ export default function ChatRoomPage() {
   const { profile } = useAuth();
   const buyerId = profile?.id ?? CURRENT_MOCK_BUYER_ID;
   const buyerName = profile?.name ?? '山田太郎';
+  // 認証解決のタイミング差に左右されず、終了処理で最新の buyerId を参照するための ref
+  const buyerIdRef = useRef(buyerId);
+  useEffect(() => {
+    buyerIdRef.current = buyerId;
+  }, [buyerId]);
 
   // 商品はDB優先（無ければ静的フォールバック）。Realtimeで SOLD OUT も同期。
   const productsGetter = useCallback(() => getSellerProducts(sellerId), [sellerId]);
@@ -187,11 +193,14 @@ export default function ChatRoomPage() {
     setTimeLeft(settings.sessionDurationSeconds);
 
     if (event && seller) {
-      startSession(CURRENT_MOCK_BUYER_ID, event.id, seller.id);
+      startSession(buyerIdRef.current, event.id, seller.id);
     }
-    // アンマウント時にセッション解除
+    // アンマウント時にセッション解除 + 整理券を done（行列を解放）
     return () => {
-      if (event) endSession(CURRENT_MOCK_BUYER_ID, event.id);
+      if (event && seller) {
+        endSession(buyerIdRef.current, event.id);
+        void completeQueueTicket(event.id, seller.id, buyerIdRef.current);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -218,6 +227,16 @@ export default function ChatRoomPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, [sessionEnded, chatSettings]);
+
+  // セッションがタイムアウトで終了したら、ロック解除 + 整理券 done（行列を解放）。
+  // 手動終了は handleManualEnd 側で処理済み。冪等なので二重実行しても安全。
+  useEffect(() => {
+    if (sessionEnded && endReason === 'timeout' && event && seller) {
+      endSession(buyerId, event.id);
+      void completeQueueTicket(event.id, seller.id, buyerId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionEnded, endReason]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -267,7 +286,10 @@ export default function ChatRoomPage() {
   const handleManualEnd = () => {
     setEndReason('manual');
     setSessionEnded(true);
-    if (event) endSession(CURRENT_MOCK_BUYER_ID, event.id);
+    if (event && seller) {
+      endSession(buyerId, event.id);
+      void completeQueueTicket(event.id, seller.id, buyerId);
+    }
   };
 
   // ⑨ 再リクエスト（順番の最後に並ぶ）

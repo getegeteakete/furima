@@ -14,6 +14,7 @@ import {
   subscribeToSellerPrivate,
   getQueueTickets,
   callNextInQueue,
+  endServingTicket,
   subscribeToQueue,
   type ChatRoomMessage,
   type QueueTicket,
@@ -189,6 +190,15 @@ function ConsoleInner() {
     setCalling(false);
   };
 
+  // 「接客終了」: 現在接客中の整理券を done にする（次の方は呼ばない）。
+  // 待機者が居なくても接客を綺麗に締められる。Realtime購読で表示は自動更新。
+  const endServing = async () => {
+    if (calling) return;
+    setCalling(true);
+    await endServingTicket(eventId, sellerId);
+    setCalling(false);
+  };
+
   const shownMessages =
     activeRoom === 'public' ? publicMsgs : (privateMsgs[activeRoom] ?? []);
 
@@ -272,6 +282,15 @@ function ConsoleInner() {
                 ? '待機者なし'
                 : `次の方を接客開始${nextNo ? ` (#${String(nextNo).padStart(2, '0')})` : ''}`}
             </button>
+            {serving && (
+              <button
+                onClick={endServing}
+                disabled={calling}
+                className="px-3 py-2 bg-gray-200 text-gray-700 rounded-full text-xs font-black whitespace-nowrap hover:bg-gray-300 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+              >
+                接客終了
+              </button>
+            )}
           </div>
         );
       })()}

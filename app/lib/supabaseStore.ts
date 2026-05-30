@@ -1338,6 +1338,38 @@ export async function leaveQueue(
   persistError('leaveQueue', error);
 }
 
+// 接客終了で自分のチケットを done にする（購入者側のセッション終了から呼ぶ）。
+// waiting/serving のみ done 化（既に done/cancelled なら何もしない）。
+export async function completeQueueTicket(
+  eventId: string,
+  sellerId: string,
+  buyerId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('queue_tickets')
+    .update({ status: 'done', updated_at: new Date().toISOString() })
+    .eq('event_id', eventId)
+    .eq('seller_id', sellerId)
+    .eq('buyer_id', buyerId)
+    .in('status', ['waiting', 'serving']);
+  persistError('completeQueueTicket', error);
+}
+
+// 出店者が「接客終了」: 現在 serving の整理券を done にする（次の方は自動で呼ばない）。
+// 待機者が居なくても接客を綺麗に締められるようにするための操作。done にした人数を返す。
+export async function endServingTicket(
+  eventId: string,
+  sellerId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('queue_tickets')
+    .update({ status: 'done', updated_at: new Date().toISOString() })
+    .eq('event_id', eventId)
+    .eq('seller_id', sellerId)
+    .eq('status', 'serving');
+  persistError('endServingTicket', error);
+}
+
 // 行列の変化を購読（event_id でサーバ絞り込み・seller はクライアント判定）
 export function subscribeToQueue(
   eventId: string,

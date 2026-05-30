@@ -165,4 +165,9 @@ create policy notifications_delete_self on public.notifications
 --
 -- 【ロールバック】
 --  問題が出たら 0001 の dev_all を再作成すれば全許可に戻せる（開発時のみ）。
+--
+-- 【続けて適用】
+--  本ファイル(0002)の後に 0009_production_rls_extra.sql を実行すること。
+--  → queue_tickets / 出店料の本人申告(fee_*) / Storage(avatars,product-images,
+--     chat-images) も本番ポリシーに締める（0002 のヘルパー関数に依存）。
 -- =============================================================

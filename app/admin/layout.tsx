@@ -9,6 +9,7 @@ import {
   SettingsIcon,
   PlusIcon,
   StoreIcon,
+  ChartIcon,
 } from '../components/Icons';
 import AuthGuard from '../components/AuthGuard';
 
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { href: '/admin', label: 'ダッシュボード', Icon: HomeIcon, exact: true },
   { href: '/admin/events', label: 'イベント管理', Icon: CalendarIcon },
   { href: '/admin/events/create', label: 'イベント作成', Icon: PlusIcon },
+  { href: '/admin/analytics', label: '売れ筋・分析', Icon: ChartIcon },
   { href: '/admin/users', label: 'ユーザー・権限', Icon: UserIcon },
   { href: '/admin/chat-settings', label: 'チャット設定', Icon: SettingsIcon },
 ];

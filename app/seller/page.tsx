@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -52,6 +52,8 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function SellerPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  // クイックアクション「新規商品登録」から商品管理タブの新規フォームを直接開くための signal
+  const [productNewSignal, setProductNewSignal] = useState(0);
   // 担当ショップ: profiles.shop_id（本番）→ デモ対応表 → 既定の順に解決
   const { profile } = useAuth();
   const shopId = profile?.shopId ?? PROFILE_TO_SHOP[profile?.id ?? ''] ?? 'mina-craft';
@@ -134,10 +136,13 @@ export default function SellerPage() {
               </h1>
               <p className="text-xs sm:text-sm text-gray-500">出店者ダッシュボード</p>
             </div>
-            <button className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white rounded-full text-sm font-bold hover:bg-orange-600 transition-all">
+            <Link
+              href="/events"
+              className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white rounded-full text-sm font-bold hover:bg-orange-600 transition-all"
+            >
               <PlusIcon size={16} stroke={2.5} />
-              新規イベント
-            </button>
+              イベントを探す
+            </Link>
           </div>
         </div>
       </section>
@@ -238,7 +243,7 @@ export default function SellerPage() {
               <div className="bg-white rounded-3xl border border-gray-200 dark:border-gray-800 overflow-hidden">
                 <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
                   <h2 className="text-base sm:text-lg font-black text-gray-900">予定中のイベント</h2>
-                  <Link href="#" className="text-xs text-orange-600 font-bold hover:underline">
+                  <Link href="/events" className="text-xs text-orange-600 font-bold hover:underline">
                     すべて見る
                   </Link>
                 </div>
@@ -287,13 +292,21 @@ export default function SellerPage() {
               {/* Quick Actions */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
                 {[
-                  { label: '新規商品登録', Icon: PlusIcon },
-                  { label: 'イベント作成', Icon: CalendarIcon },
-                  { label: '在庫確認', Icon: PackageIcon },
-                  { label: '売上レポート', Icon: TrendingUpIcon },
+                  {
+                    label: '新規商品登録',
+                    Icon: PlusIcon,
+                    onClick: () => {
+                      setActiveTab('products');
+                      setProductNewSignal((n) => n + 1);
+                    },
+                  },
+                  { label: 'イベント管理', Icon: CalendarIcon, onClick: () => setActiveTab('events') },
+                  { label: '在庫確認', Icon: PackageIcon, onClick: () => setActiveTab('products') },
+                  { label: '売上レポート', Icon: TrendingUpIcon, onClick: () => setActiveTab('analytics') },
                 ].map((action) => (
                   <button
                     key={action.label}
+                    onClick={action.onClick}
                     className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 hover:border-orange-300 hover:shadow-md transition-all text-left"
                   >
                     <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center mb-3 text-orange-600">
@@ -307,7 +320,7 @@ export default function SellerPage() {
           )}
 
           {/* Products Tab */}
-          {activeTab === 'products' && <ProductManager shopId={shopId} />}
+          {activeTab === 'products' && <ProductManager shopId={shopId} openNewSignal={productNewSignal} />}
 
           {/* Events Tab */}
           {activeTab === 'events' && <SellerFeePanel profileId={profile?.id ?? ''} />}
@@ -456,7 +469,7 @@ type ProductForm = {
 
 const EMPTY_FORM: ProductForm = { name: '', price: '', icon: 'package', description: '', stock: '', imageUrl: '' };
 
-function ProductManager({ shopId }: { shopId: string }) {
+function ProductManager({ shopId, openNewSignal = 0 }: { shopId: string; openNewSignal?: number }) {
   const getter = useCallback(() => getSellerProducts(shopId), [shopId]);
   const [products] = useStoreData(getter);
   // editing: null=フォーム閉, 'new'=新規, number=該当product_noを編集
@@ -464,6 +477,16 @@ function ProductManager({ shopId }: { shopId: string }) {
   const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
+
+  // 概要タブのクイックアクション「新規商品登録」から signal が来たら新規フォームを開く。
+  // 初期マウント(signal=0)では開かない。
+  useEffect(() => {
+    if (openNewSignal > 0) {
+      setForm(EMPTY_FORM);
+      setError('');
+      setEditing('new');
+    }
+  }, [openNewSignal]);
 
   const handleImageFile = async (file: File | undefined) => {
     if (!file) return;
