@@ -12,7 +12,11 @@ import {
   sendChatMessage,
   subscribeToRoom,
   subscribeToSellerPrivate,
+  getQueueTickets,
+  callNextInQueue,
+  subscribeToQueue,
   type ChatRoomMessage,
+  type QueueTicket,
 } from '../../../../../lib/supabaseStore';
 import { useAuth } from '../../../../../components/AuthProvider';
 import AuthGuard from '../../../../../components/AuthGuard';
@@ -74,6 +78,8 @@ function ConsoleInner() {
   const [publicMsgs, setPublicMsgs] = useState<Message[]>([]);
   const [privateMsgs, setPrivateMsgs] = useState<Record<string, Message[]>>({});
   const [unread, setUnread] = useState<Record<string, number>>({});
+  const [queue, setQueue] = useState<QueueTicket[]>([]);
+  const [calling, setCalling] = useState(false);
   const [input, setInput] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -157,6 +163,32 @@ function ConsoleInner() {
     if (activeRoom !== 'public') setUnread((prev) => ({ ...prev, [activeRoom]: 0 }));
   }, [activeRoom]);
 
+  // 整理券キューの読み込み + 変化購読
+  useEffect(() => {
+    if (!event || !seller) return;
+    let active = true;
+    const refresh = async () => {
+      const list = await getQueueTickets(eventId, sellerId);
+      if (active) setQueue(list);
+    };
+    refresh();
+    const unsub = subscribeToQueue(eventId, sellerId, refresh);
+    return () => {
+      active = false;
+      unsub();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId, sellerId, event?.id, seller?.id]);
+
+  // 「次の方を接客開始」: 先頭の待機者を接客中にし、順番通知を配信
+  const callNext = async () => {
+    if (calling) return;
+    setCalling(true);
+    const next = await callNextInQueue(eventId, sellerId, seller?.name);
+    if (next) setActiveRoom(next.buyerId); // その購入者の個別ルームへ自動で切替
+    setCalling(false);
+  };
+
   const shownMessages =
     activeRoom === 'public' ? publicMsgs : (privateMsgs[activeRoom] ?? []);
 
@@ -216,6 +248,33 @@ function ConsoleInner() {
           </p>
         </div>
       </div>
+
+      {/* 整理券キュー制御 */}
+      {(() => {
+        const waiting = queue.filter((t) => t.status === 'waiting');
+        const serving = queue.find((t) => t.status === 'serving');
+        const nextNo = waiting[0]?.ticketNo;
+        return (
+          <div className="bg-white border-b border-orange-100 px-3 py-2 flex items-center gap-3 flex-shrink-0">
+            <div className="flex-1 min-w-0 text-xs">
+              <span className="font-bold text-gray-700">整理券</span>
+              <span className="text-gray-500 ml-2">
+                接客中 {serving ? `#${String(serving.ticketNo).padStart(2, '0')}` : 'なし'}
+              </span>
+              <span className="text-orange-600 font-bold ml-2">待機 {waiting.length}名</span>
+            </div>
+            <button
+              onClick={callNext}
+              disabled={calling || waiting.length === 0}
+              className="px-4 py-2 bg-green-500 text-white rounded-full text-xs font-black whitespace-nowrap hover:bg-green-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+            >
+              {waiting.length === 0
+                ? '待機者なし'
+                : `次の方を接客開始${nextNo ? ` (#${String(nextNo).padStart(2, '0')})` : ''}`}
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Room tabs: 全体 + 購入者リスト（横スクロール） */}
       <div className="bg-orange-50 border-b border-orange-100 px-3 py-2 flex gap-2 overflow-x-auto flex-shrink-0">

@@ -13,14 +13,21 @@ import {
   HeartIcon,
   ChatIcon,
   BellIcon,
-  HourglassIcon,
   SparklesIcon,
 } from '../../../../../components/Icons';
 import { getSellerById } from '../../../../../lib/events';
-import { getPublicEventById, reserveAsBuyer, CURRENT_MOCK_BUYER_ID } from '../../../../../lib/supabaseStore';
+import {
+  getPublicEventById,
+  reserveAsBuyer,
+  joinQueue,
+  getQueueTickets,
+  subscribeToQueue,
+  leaveQueue,
+  CURRENT_MOCK_BUYER_ID,
+  type QueueTicket,
+} from '../../../../../lib/supabaseStore';
 import { useStoreData } from '../../../../../lib/useStore';
 import { useAuth } from '../../../../../components/AuthProvider';
-import { useNotifications } from '../../../../../components/NotificationContext';
 
 export default function WaitingPage() {
   const params = useParams();
@@ -31,65 +38,48 @@ export default function WaitingPage() {
   const [event] = useStoreData(eventGetter);
   const seller = getSellerById(sellerId);
 
-  const [ticketNumber] = useState(3);
-  const [currentServing, setCurrentServing] = useState(1);
-  const [secondsLeft, setSecondsLeft] = useState(15);
-  const [signalReceived, setSignalReceived] = useState(false);
-
-  // ログイン中の購入者で来場予約を記録（成立判定の予約数に反映）
   const { profile } = useAuth();
-  const { addNotification } = useNotifications();
   const buyerId = profile?.id ?? CURRENT_MOCK_BUYER_ID;
-  const reservedRef = useRef(false);
+  const buyerName = profile?.name ?? '山田太郎';
+
+  const [tickets, setTickets] = useState<QueueTicket[]>([]);
+  const [joined, setJoined] = useState(false);
+
+  // 来場予約（成立判定の予約数に反映）＋ 行列に並ぶ。イベントがハイドレートされてから1回だけ。
+  const setupRef = useRef(false);
   useEffect(() => {
-    // イベントがハイドレートされてから1回だけ予約（冪等・既予約は無視）
-    if (!event || reservedRef.current) return;
-    reservedRef.current = true;
+    if (!event || !seller || setupRef.current) return;
+    setupRef.current = true;
     reserveAsBuyer(eventId, buyerId);
-  }, [event, eventId, buyerId]);
+    (async () => {
+      await joinQueue(eventId, sellerId, buyerId, buyerName);
+      const list = await getQueueTickets(eventId, sellerId);
+      setTickets(list);
+      setJoined(true);
+    })();
+  }, [event, seller, eventId, sellerId, buyerId, buyerName]);
 
-  // 順番が来たら通知履歴に1回だけ記録（OPEN/開催はサーバーCronが配信）
-  const turnNotifiedRef = useRef(false);
+  // 行列の変化を購読（並ぶ/呼ばれる/終了でリフレッシュ）
   useEffect(() => {
-    if (!signalReceived || turnNotifiedRef.current || !seller || !event) return;
-    turnNotifiedRef.current = true;
-    addNotification({
-      type: 'turn',
-      title: '順番通知',
-      message: `${seller.name} の順番が来ました。チャットを開始できます。`,
-      eventName: seller.name,
-      eventId,
-    });
-  }, [signalReceived, seller, event, eventId, addNotification]);
-
-  useEffect(() => {
-    if (signalReceived) return;
-
-    const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          setCurrentServing((s) => {
-            const newServing = s + 1;
-            if (newServing >= ticketNumber) {
-              setSignalReceived(true);
-              return ticketNumber;
-            }
-            return newServing;
-          });
-          return 15;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [signalReceived, ticketNumber]);
+    if (!joined) return;
+    const refresh = async () => setTickets(await getQueueTickets(eventId, sellerId));
+    const unsub = subscribeToQueue(eventId, sellerId, refresh);
+    return () => unsub();
+  }, [joined, eventId, sellerId]);
 
   if (!event) return null;
   if (!seller) return null;
 
-  const waitingAhead = ticketNumber - currentServing;
+  // 行列の状態を算出
+  const active = tickets.filter((t) => t.status === 'waiting' || t.status === 'serving');
+  const myTicket = tickets.find((t) => t.buyerId === buyerId);
+  const serving = active.find((t) => t.status === 'serving');
+  const signalReceived = myTicket?.status === 'serving';
+  const waitingAhead = myTicket
+    ? active.filter((t) => t.ticketNo < myTicket.ticketNo).length
+    : active.length;
   const estimatedMinutes = waitingAhead * 10;
+  const myNo = myTicket?.ticketNo ?? 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100">
@@ -142,7 +132,7 @@ export default function WaitingPage() {
                 </h2>
                 <p className="text-sm mb-8 opacity-90 leading-relaxed">
                   チャットルームが準備できました。<br />
-                  10分間、{seller.name}さんと<br className="sm:hidden" />1対1でお話できます。
+                  {seller.name}さんと<br className="sm:hidden" />1対1でお話できます。
                 </p>
 
                 <button
@@ -170,7 +160,7 @@ export default function WaitingPage() {
 
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 font-bold tracking-widest uppercase">Ticket No.</p>
                   <div className="text-7xl sm:text-8xl font-black text-orange-600 mb-3 leading-none">
-                    #{String(ticketNumber).padStart(2, '0')}
+                    {myNo > 0 ? `#${String(myNo).padStart(2, '0')}` : '…'}
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">{seller.name} - {event.date}</p>
                 </div>
@@ -182,7 +172,7 @@ export default function WaitingPage() {
                     <div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">現在 接客中</p>
                       <p className="text-2xl font-black text-gray-900">
-                        #{String(currentServing).padStart(2, '0')}
+                        {serving ? `#${String(serving.ticketNo).padStart(2, '0')}` : '—'}
                       </p>
                     </div>
                     <div className="text-right">
@@ -196,29 +186,35 @@ export default function WaitingPage() {
                   <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden mb-3">
                     <div
                       className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-1000"
-                      style={{ width: `${(currentServing / ticketNumber) * 100}%` }}
+                      style={{ width: `${myNo > 0 ? Math.max(6, (1 - waitingAhead / Math.max(myNo, 1)) * 100) : 0}%` }}
                     />
                   </div>
 
                   <p className="text-sm text-gray-600 text-center">
-                    順番まで <span className="font-black text-orange-600">約{estimatedMinutes}分</span>
+                    {waitingAhead === 0
+                      ? <span className="font-black text-orange-600">まもなくお呼びします</span>
+                      : <>順番まで <span className="font-black text-orange-600">約{estimatedMinutes}分</span></>}
                   </p>
                 </div>
               </div>
 
-              {/* Countdown */}
+              {/* 待機状況 */}
               <div className="bg-white rounded-2xl p-5 mb-6 border border-orange-100 shadow-sm">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center flex-shrink-0 text-orange-600">
-                    <HourglassIcon size={24} stroke={1.5} />
+                    <BellIcon size={24} stroke={1.5} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">次の方への引き継ぎまで</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">現在の待機人数</p>
                     <p className="text-lg font-black text-orange-600">
-                      {secondsLeft}秒 <span className="text-xs font-medium text-gray-500 dark:text-gray-400">(デモ)</span>
+                      待機中 {active.filter((t) => t.status === 'waiting').length}名
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 ml-2">／ 接客中 {serving ? 1 : 0}名</span>
                     </p>
                   </div>
                 </div>
+                <p className="text-[11px] text-gray-400 mt-3 text-center">
+                  出店者が「次の方へ」を押すと、順番が来た方へ通知が届きます。
+                </p>
               </div>
 
               {/* Tips */}
@@ -237,6 +233,17 @@ export default function WaitingPage() {
                   </div>
                 ))}
               </div>
+
+              {/* 離脱 */}
+              <button
+                onClick={async () => {
+                  await leaveQueue(eventId, sellerId, buyerId);
+                  router.push(`/event/${eventId}`);
+                }}
+                className="w-full mt-6 px-6 py-3 text-sm font-bold text-gray-500 hover:text-red-600 transition-colors"
+              >
+                行列から離れる
+              </button>
             </>
           )}
         </div>

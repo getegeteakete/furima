@@ -1023,6 +1023,204 @@ export function subscribeToSellerPrivate(
 }
 
 // =============================================================
+// 整理券キュー（queue_tickets テーブル）
+// -------------------------------------------------------------
+// (event_id, seller_id) ごとの待ち行列をサーバーで共有する。
+// 元仕様: 整理券方式 / 順番待ち表示 / 接客開始ボタン / 順番通知。
+// =============================================================
+export type QueueStatus = 'waiting' | 'serving' | 'done' | 'cancelled';
+export type QueueTicket = {
+  id: string;
+  eventId: string;
+  sellerId: string;
+  buyerId: string;
+  buyerName: string | null;
+  status: QueueStatus;
+  ticketNo: number;
+  createdAt: string;
+};
+
+type QueueRow = {
+  id: string;
+  event_id: string;
+  seller_id: string;
+  buyer_id: string;
+  buyer_name: string | null;
+  status: QueueStatus;
+  ticket_no: number;
+  created_at: string;
+  updated_at: string;
+};
+
+function rowToTicket(r: QueueRow): QueueTicket {
+  return {
+    id: r.id,
+    eventId: r.event_id,
+    sellerId: r.seller_id,
+    buyerId: r.buyer_id,
+    buyerName: r.buyer_name,
+    status: r.status,
+    ticketNo: r.ticket_no,
+    createdAt: r.created_at,
+  };
+}
+
+// 行列に並ぶ（冪等: 既にチケットがあれば再利用。done/cancelled は waiting へ復帰）。
+export async function joinQueue(
+  eventId: string,
+  sellerId: string,
+  buyerId: string,
+  buyerName: string | null,
+): Promise<QueueTicket | null> {
+  const { data: existing } = await supabase
+    .from('queue_tickets')
+    .select('*')
+    .eq('event_id', eventId)
+    .eq('seller_id', sellerId)
+    .eq('buyer_id', buyerId)
+    .maybeSingle();
+  if (existing) {
+    const r = existing as QueueRow;
+    if (r.status === 'done' || r.status === 'cancelled') {
+      const { data: upd } = await supabase
+        .from('queue_tickets')
+        .update({ status: 'waiting', updated_at: new Date().toISOString() })
+        .eq('id', r.id)
+        .select()
+        .single();
+      return upd ? rowToTicket(upd as QueueRow) : rowToTicket({ ...r, status: 'waiting' });
+    }
+    return rowToTicket(r);
+  }
+  // 連番採番（その行列の最大 ticket_no + 1）
+  const { data: maxRow } = await supabase
+    .from('queue_tickets')
+    .select('ticket_no')
+    .eq('event_id', eventId)
+    .eq('seller_id', sellerId)
+    .order('ticket_no', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextNo = ((maxRow as { ticket_no: number } | null)?.ticket_no ?? 0) + 1;
+  const { data, error } = await supabase
+    .from('queue_tickets')
+    .insert({
+      event_id: eventId,
+      seller_id: sellerId,
+      buyer_id: buyerId,
+      buyer_name: buyerName,
+      status: 'waiting',
+      ticket_no: nextNo,
+    })
+    .select()
+    .single();
+  if (error) {
+    persistError('joinQueue', error);
+    return null;
+  }
+  return rowToTicket(data as QueueRow);
+}
+
+// 行列の全チケット（ticket_no 昇順）
+export async function getQueueTickets(eventId: string, sellerId: string): Promise<QueueTicket[]> {
+  const { data, error } = await supabase
+    .from('queue_tickets')
+    .select('*')
+    .eq('event_id', eventId)
+    .eq('seller_id', sellerId)
+    .order('ticket_no', { ascending: true });
+  if (error) {
+    persistError('getQueueTickets', error);
+    return [];
+  }
+  return (data ?? []).map((d) => rowToTicket(d as QueueRow));
+}
+
+// 出店者が「次の方」を接客開始: 現在の serving を done にし、先頭の waiting を serving へ。
+// serving になった購入者へ順番通知を配信。serving チケットを返す（居なければ null）。
+export async function callNextInQueue(
+  eventId: string,
+  sellerId: string,
+  sellerName?: string,
+): Promise<QueueTicket | null> {
+  const now = new Date().toISOString();
+  await supabase
+    .from('queue_tickets')
+    .update({ status: 'done', updated_at: now })
+    .eq('event_id', eventId)
+    .eq('seller_id', sellerId)
+    .eq('status', 'serving');
+  const { data: head } = await supabase
+    .from('queue_tickets')
+    .select('*')
+    .eq('event_id', eventId)
+    .eq('seller_id', sellerId)
+    .eq('status', 'waiting')
+    .order('ticket_no', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!head) return null;
+  const r = head as QueueRow;
+  const { data: upd, error } = await supabase
+    .from('queue_tickets')
+    .update({ status: 'serving', updated_at: now })
+    .eq('id', r.id)
+    .select()
+    .single();
+  if (error) {
+    persistError('callNextInQueue', error);
+    return null;
+  }
+  await createNotification({
+    userId: r.buyer_id,
+    type: 'turn',
+    title: '順番通知',
+    message: `${sellerName ?? 'ショップ'} の順番が来ました。チャットを開始できます。`,
+    eventId,
+    eventName: sellerName,
+    dedupeKey: `turn:${eventId}:${sellerId}:${r.buyer_id}:${r.ticket_no}`,
+  });
+  return rowToTicket(upd as QueueRow);
+}
+
+// 自分のチケットを離脱（cancelled）
+export async function leaveQueue(
+  eventId: string,
+  sellerId: string,
+  buyerId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('queue_tickets')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('event_id', eventId)
+    .eq('seller_id', sellerId)
+    .eq('buyer_id', buyerId);
+  persistError('leaveQueue', error);
+}
+
+// 行列の変化を購読（event_id でサーバ絞り込み・seller はクライアント判定）
+export function subscribeToQueue(
+  eventId: string,
+  sellerId: string,
+  onChange: () => void,
+): () => void {
+  const channel = supabase
+    .channel(`queue-${eventId}-${sellerId}-${Math.random().toString(36).slice(2, 8)}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'queue_tickets', filter: `event_id=eq.${eventId}` },
+      (payload) => {
+        const row = (payload.new ?? payload.old) as QueueRow | undefined;
+        if (!row || row.seller_id === sellerId) onChange();
+      },
+    )
+    .subscribe();
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+// =============================================================
 // 画像アップロード（Supabase Storage）
 // -------------------------------------------------------------
 // チャット画像を dataURL でDB保存していたのを Storage へ移行。
