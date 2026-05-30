@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef, useCallback, type Dispatch, type SetStateAction } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
 import Link from 'next/link';
 import {
   ProductIcon,
@@ -99,8 +99,24 @@ export default function ChatRoomPage() {
   const [dbProducts] = useStoreData(productsGetter);
   useEffect(() => {
     setProducts(dbProducts.map((p) => ({ ...p, soldOut: p.soldOut ?? false })));
-    setSelectedProduct((prev) => prev ?? dbProducts[0] ?? null);
   }, [dbProducts]);
+
+  // 元仕様(商品公開仕様): 開催前=目玉5点のみ / 開催中=全商品 / 開催後=非公開
+  const eventPhase = event?.status ?? 'upcoming';
+  const visibleProducts = useMemo<(Product & { soldOut: boolean })[]>(() => {
+    if (eventPhase === 'live') return products;
+    if (eventPhase === 'ended') return []; // 開催後は非公開
+    return products.slice(0, 5); // 開催前(upcoming)は目玉5点のみ
+  }, [products, eventPhase]);
+
+  // 選択中商品は「表示中の商品」に限定（非表示になったら先頭へ／無ければ null）
+  useEffect(() => {
+    setSelectedProduct((prev) =>
+      prev && visibleProducts.some((p) => p.id === prev.id)
+        ? prev
+        : (visibleProducts[0] ?? null),
+    );
+  }, [visibleProducts]);
 
   // 重複なしで追記（Realtime のエコーと楽観追加の二重表示を防ぐ）
   const appendUnique = (
@@ -359,7 +375,7 @@ export default function ChatRoomPage() {
     );
   }
 
-  if (!event || !selectedProduct) return null;
+  if (!event) return null;
 
   if (sessionEnded) {
     return (
@@ -498,6 +514,7 @@ export default function ChatRoomPage() {
       {/* TOP HALF: Products (個別チャット時のみ) */}
       {chatTab === 'private' && (
       <div className="flex-shrink-0 sm:flex-1 bg-white border-b-4 border-orange-100 flex flex-col overflow-hidden min-h-0 max-h-[42vh] sm:max-h-none">
+        {selectedProduct ? (
         <div className="p-4 bg-gradient-to-br from-orange-50 to-yellow-50 border-b border-orange-100 flex-shrink-0">
           <div className="flex gap-3 items-center">
             <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden ${
@@ -533,22 +550,41 @@ export default function ChatRoomPage() {
             </button>
           </div>
         </div>
+        ) : (
+          <div className="p-4 bg-gradient-to-br from-orange-50 to-yellow-50 border-b border-orange-100 flex-shrink-0 text-center text-sm text-gray-500">
+            {eventPhase === 'ended'
+              ? 'イベントは終了しました。商品は非公開です。'
+              : '開催前です。下の目玉商品をチェックしてください。'}
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
           <p className="text-xs font-bold text-gray-700 mb-3 px-1">
-            商品一覧 ({products.filter((p) => !p.soldOut).length}/{products.length})
+            {eventPhase === 'ended'
+              ? '商品一覧（開催後は非公開）'
+              : eventPhase === 'upcoming'
+                ? `目玉商品 (${visibleProducts.filter((p) => !p.soldOut).length}/${visibleProducts.length})`
+                : `商品一覧 (${visibleProducts.filter((p) => !p.soldOut).length}/${visibleProducts.length})`}
             <span className="sm:hidden text-gray-400 font-normal ml-1">← 横にスクロール</span>
           </p>
+          {eventPhase === 'upcoming' && (
+            <p className="text-[11px] text-orange-600 mb-3 px-1">
+              ※ 開催前は目玉商品のみ表示。OPEN後に全商品が公開されます。
+            </p>
+          )}
 
           {/* スマホ: 横スクロール / PC: グリッド */}
+          {visibleProducts.length === 0 ? (
+            <p className="text-center text-xs text-gray-400 py-6">表示できる商品はありません。</p>
+          ) : (
           <div className="flex sm:grid sm:grid-cols-3 gap-3 overflow-x-auto sm:overflow-x-visible pb-2 sm:pb-0 scrollbar-hide -mx-1 px-1">
-            {products.map((product) => (
+            {visibleProducts.map((product) => (
               <button
                 key={product.id}
                 onClick={() => !product.soldOut && askAboutProduct(product)}
                 disabled={product.soldOut}
                 className={`relative rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 w-28 sm:w-auto ${
-                  selectedProduct.id === product.id
+                  selectedProduct?.id === product.id
                     ? 'border-orange-500 ring-2 ring-orange-200'
                     : 'border-gray-200 dark:border-gray-800'
                 } ${product.soldOut ? 'opacity-60 cursor-not-allowed' : 'hover:border-orange-400 active:scale-95'}`}
@@ -578,6 +614,7 @@ export default function ChatRoomPage() {
               </button>
             ))}
           </div>
+          )}
         </div>
       </div>
       )}
