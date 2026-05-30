@@ -14,7 +14,8 @@ import {
   UserIcon,
 } from '../components/Icons';
 import { useFavorites } from '../components/FavoritesContext';
-import { timeSlotEvents } from '../lib/events';
+import { getPublicEvents } from '../lib/supabaseStore';
+import { useStoreData } from '../lib/useStore';
 
 const REGIONS = ['全国', '北海道', '東北', '関東', '東京', '中部', '関西', '京都', '大阪', '中国', '四国', '九州', '福岡', '沖縄'];
 const CATEGORIES = ['すべて', 'ハンドメイド', '古着', '雑貨', 'アクセサリー', 'ジュエリー', '食品', '家電'];
@@ -25,8 +26,11 @@ export default function EventsPage() {
   const [sortBy, setSortBy] = useState<'time' | 'region' | 'sellers'>('time');
   const { toggleFavorite, isFavorite } = useFavorites();
 
+  // admin_events ベースの公開イベント（予約・チャットと同じID基盤）
+  const [publicEvents] = useStoreData(getPublicEvents);
+
   // フィルター適用
-  const filtered = timeSlotEvents.filter((event) => {
+  const filtered = publicEvents.filter((event) => {
     const regionMatch = region === '全国' || event.region === region;
     const categoryMatch = category === 'すべて' || event.sellers.some((s) => s.tags.some((t) => t.includes(category)));
     return regionMatch && categoryMatch;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Header from '../../components/Header';
 import {
@@ -13,14 +13,15 @@ import {
   CalendarIcon,
   StarIcon,
 } from '../../components/Icons';
-import { getTimeSlotEventById } from '../../lib/events';
-import { getBuyerActiveSession, CURRENT_MOCK_BUYER_ID } from '../../lib/supabaseStore';
+import { getPublicEventById, getBuyerActiveSession, CURRENT_MOCK_BUYER_ID } from '../../lib/supabaseStore';
+import { useStoreData } from '../../lib/useStore';
 
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = params.id as string;
-  const event = getTimeSlotEventById(eventId);
+  const eventGetter = useCallback(() => getPublicEventById(eventId), [eventId]);
+  const [event] = useStoreData(eventGetter);
   const [countdownTime, setCountdownTime] = useState<number | null>(null);
   const [activeSellerId, setActiveSellerId] = useState<string | null>(null); // ⑥ 接客中の出店者
 

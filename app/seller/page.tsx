@@ -109,7 +109,7 @@ export default function SellerPage() {
             <div className="space-y-8 lg:space-y-10">
               {/* ライブ接客コンソールへの導線 */}
               <Link
-                href="/event/2000-shiga/seller/mina-craft/console"
+                href="/event/evt-001/seller/mina-craft/console"
                 className="block bg-gradient-to-r from-orange-500 to-orange-600 rounded-3xl p-6 sm:p-7 text-white hover:shadow-lg transition-all active:scale-[0.99]"
               >
                 <div className="flex items-center justify-between gap-4">

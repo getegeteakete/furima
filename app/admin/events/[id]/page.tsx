@@ -1,14 +1,17 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   getAdminEventById,
   setEventStatus,
   updateSellerApplication,
   deleteAdminEvent,
+  checkOpenEligibility,
+  OPEN_THRESHOLD,
   type AdminEventStatus,
+  type OpenEligibility,
 } from '../../../lib/supabaseStore';
 import { useStoreData } from '../../../lib/useStore';
 import {
@@ -28,6 +31,19 @@ export default function AdminEventDetailPage() {
 
   const getter = useCallback(() => getAdminEventById(eventId), [eventId]);
   const [event] = useStoreData(getter);
+
+  // 開催成立判定（③ 3名予約 AND 3アカウントのチャット）
+  const [eligibility, setEligibility] = useState<OpenEligibility | null>(null);
+  useEffect(() => {
+    let active = true;
+    const run = () => checkOpenEligibility(eventId).then((e) => active && setEligibility(e));
+    run();
+    const timer = setInterval(run, 10000); // 開催中の変動を反映
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [eventId]);
 
   if (!event) {
     return (
@@ -83,6 +99,49 @@ export default function AdminEventDetailPage() {
       {/* ② OPEN/CLOSE 制御 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <h2 className="font-black text-gray-900 mb-4">開催ステータス管理</h2>
+
+        {/* ③ 開催成立条件 */}
+        <div className="mb-5 rounded-xl border border-gray-100 bg-gray-50 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-bold text-gray-700">開催成立条件</p>
+            {eligibility && (
+              <span
+                className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                  eligibility.eligible ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                }`}
+              >
+                {eligibility.eligible ? '✓ 成立' : '未成立'}
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white rounded-lg p-3 border border-gray-100">
+              <p className="text-[11px] text-gray-500 mb-1">来場予約（{OPEN_THRESHOLD.minReservations}名以上）</p>
+              <p className="text-lg font-black text-gray-900">
+                {eligibility ? eligibility.reservationCount : '—'}
+                <span className="text-xs text-gray-400 font-medium"> 名</span>
+                {eligibility && (
+                  <span className={`ml-2 text-sm ${eligibility.reservationsMet ? 'text-green-600' : 'text-gray-400'}`}>
+                    {eligibility.reservationsMet ? '✓' : '…'}
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-gray-100">
+              <p className="text-[11px] text-gray-500 mb-1">チャット参加（{OPEN_THRESHOLD.minChatAccounts}アカウント以上）</p>
+              <p className="text-lg font-black text-gray-900">
+                {eligibility ? eligibility.chatAccountCount : '—'}
+                <span className="text-xs text-gray-400 font-medium"> アカウント</span>
+                {eligibility && (
+                  <span className={`ml-2 text-sm ${eligibility.chatMet ? 'text-green-600' : 'text-gray-400'}`}>
+                    {eligibility.chatMet ? '✓' : '…'}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-2">
           {([
             { status: 'recruiting', label: '募集中にする', cls: 'bg-orange-500' },
@@ -93,7 +152,22 @@ export default function AdminEventDetailPage() {
           ] as const).map((b) => (
             <button
               key={b.status}
-              onClick={() => handleStatusChange(b.status)}
+              onClick={() => {
+                // ③ 成立条件未達のままOPENする場合は確認
+                if (
+                  b.status === 'live' &&
+                  eligibility &&
+                  !eligibility.eligible &&
+                  !confirm(
+                    `開催成立条件が未達です（予約${eligibility.reservationCount}名 / チャット${eligibility.chatAccountCount}アカウント）。\n` +
+                      `条件は予約${OPEN_THRESHOLD.minReservations}名以上 かつ チャット${OPEN_THRESHOLD.minChatAccounts}アカウント以上です。\n` +
+                      `それでもOPENしますか？`,
+                  )
+                ) {
+                  return;
+                }
+                handleStatusChange(b.status);
+              }}
               className={`px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-95 ${
                 event.status === b.status ? `${b.cls} ring-2 ring-offset-2 ring-orange-300` : `${b.cls} opacity-70 hover:opacity-100`
               }`}

@@ -12,7 +12,9 @@ insert into public.profiles (id, name, email, role) values
   ('seller-mina', 'mina.craft',        'mina@example.com',  'seller'),
   ('seller-kyoto','kyoto.vintage',     'kyoto@example.com', 'seller'),
   ('seller-osaka','osaka.antique',     'osaka@example.com', 'seller'),
-  ('buyer-1',     '山田太郎',          'yamada@example.com','buyer')
+  ('buyer-1',     '山田太郎',          'yamada@example.com','buyer'),
+  ('demo-buyer-2','佐々木花子',        'sasaki@example.com','buyer'),
+  ('demo-buyer-3','鈴木一郎',          'suzuki@example.com','buyer')
 on conflict (id) do nothing;
 
 -- ---------- sellers (店舗マスタ) ----------
@@ -82,30 +84,47 @@ on conflict (seller_id, product_no) do nothing;
 insert into public.chat_settings (id) values (1)
 on conflict (id) do nothing;
 
--- ---------- admin_events (DEFAULT_ADMIN_EVENTS) ----------
+-- ---------- admin_events ----------
+-- timeSlotEvents の5枠を admin_events として投入（公開/ライブ画面の正のイベント）。
+-- 公開statusへの変換: live→LIVE / recruiting・seller_closed→開催前 / ended→終了。
+-- 滋賀(evt-001)を開催中(live)・3出店者、他は開催前として現行デモを再現。
 insert into public.admin_events
   (id, date, start_time, end_time, region, title, description, max_sellers, max_buyers, status, manager_id, manager_name, created_at) values
   ('evt-001','2026-06-01','20:00','22:00','滋賀','【滋賀】夜のハンドメイドフリマ',
-   '滋賀エリアの作家さんが集まるハンドメイドイベントです。',5,100,'recruiting','mgr-1','田中マネージャー','2026-05-25T10:00:00Z'),
-  ('evt-002','2026-06-02','21:00','23:00','大阪','【大阪】古着＆ヴィンテージ市',
-   '大阪の古着・アンティーク好き集まれ！',3,50,'recruiting','mgr-2','佐藤マネージャー','2026-05-26T11:00:00Z')
+   '滋賀エリアの作家さんが集まるハンドメイドイベントです。',5,100,'live','mgr-1','田中マネージャー','2026-05-25T10:00:00Z'),
+  ('evt-002','2026-06-01','20:15','22:15','京都','【京都】古着＆ヴィンテージ市',
+   '京都の古着・ヴィンテージ好き集まれ！',3,50,'recruiting','mgr-2','佐藤マネージャー','2026-05-26T11:00:00Z'),
+  ('evt-003','2026-06-01','20:30','22:30','大阪','【大阪】骨董・アンティーク雑貨市',
+   '大阪の骨董・アンティーク雑貨を扱う夜市です。',3,50,'recruiting','mgr-2','佐藤マネージャー','2026-05-26T12:00:00Z'),
+  ('evt-004','2026-06-01','20:45','22:45','福岡','【福岡】レザークラフト夜市',
+   '福岡発のレザークラフト作家による出店イベント。',3,50,'recruiting','mgr-1','田中マネージャー','2026-05-26T13:00:00Z'),
+  ('evt-005','2026-06-01','21:00','23:00','北海道','【北海道】伝統工芸クラフト市',
+   'アイヌ文様を取り入れた現代工芸品の出店イベント。',3,50,'recruiting','mgr-1','田中マネージャー','2026-05-26T14:00:00Z')
 on conflict (id) do nothing;
 
+-- 承認済み出店者（公開画面に表示される）。滋賀は3出店者で賑わいを再現。
 insert into public.seller_applications (event_id, seller_id, seller_name, status, applied_at) values
   ('evt-001','seller-mina','mina.craft','approved','2026-05-26T09:00:00Z'),
-  ('evt-001','seller-kyoto','kyoto.vintage','pending','2026-05-27T14:00:00Z'),
-  ('evt-002','seller-osaka','osaka.antique','pending','2026-05-27T16:00:00Z')
+  ('evt-001','seller-kyoto','kyoto.vintage','approved','2026-05-26T09:10:00Z'),
+  ('evt-001','seller-osaka','osaka.antique','approved','2026-05-26T09:20:00Z'),
+  ('evt-002','seller-kyoto','kyoto.vintage','approved','2026-05-27T14:00:00Z'),
+  ('evt-003','seller-osaka','osaka.antique','approved','2026-05-27T16:00:00Z'),
+  ('evt-004','seller-fukuoka','fukuoka.handmade','approved','2026-05-27T17:00:00Z'),
+  ('evt-005','seller-hokkaido','hokkaido.craft','approved','2026-05-27T18:00:00Z')
 on conflict (event_id, seller_id) do nothing;
 
+-- 来場予約（evt-001 を成立判定デモ用に3名投入 → 予約条件クリア）
 insert into public.buyer_reservations (event_id, buyer_id) values
-  ('evt-001','buyer-1')
+  ('evt-001','buyer-1'),
+  ('evt-001','demo-buyer-2'),
+  ('evt-001','demo-buyer-3')
 on conflict (event_id, buyer_id) do nothing;
 
 -- ---------- transactions (txn-demo-1) ----------
 insert into public.transactions
   (id, event_id, event_title, seller_id, seller_name, buyer_id, buyer_name,
    product_name, product_price, purchased_at, expires_at, messages) values
-  ('txn-demo-1','2000-shiga','【滋賀】夜のハンドメイドフリマ','mina-craft','mina.craft',
+  ('txn-demo-1','evt-001','【滋賀】夜のハンドメイドフリマ','mina-craft','mina.craft',
    'buyer-1','山田太郎','天然石ネックレス',4500,
    now() - interval '2 days', now() + interval '5 days',
    '[

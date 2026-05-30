@@ -4,8 +4,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback, type Dispatch, type SetStateAction } from 'react';
 import Link from 'next/link';
 import { ProductIcon, ArrowLeftIcon, SendIcon } from '../../../../../components/Icons';
-import { getTimeSlotEventById, getSellerById } from '../../../../../lib/events';
+import { getSellerById } from '../../../../../lib/events';
 import {
+  getPublicEventById,
   fetchRoomMessages,
   fetchSellerRoomBuyers,
   sendChatMessage,
@@ -53,7 +54,7 @@ function ConsoleInner() {
   const router = useRouter();
   const eventId = params.id as string;
   const sellerId = params.sellerId as string;
-  const event = getTimeSlotEventById(eventId);
+  const event = getPublicEventById(eventId);
   const seller = getSellerById(sellerId);
 
   const { profile } = useAuth();

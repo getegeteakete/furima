@@ -12,13 +12,14 @@ import {
   HeartIcon,
   RefreshIcon,
 } from '../../../../components/Icons';
-import { getTimeSlotEventById, getSellerById, type Product } from '../../../../lib/events';
+import { getSellerById, type Product } from '../../../../lib/events';
 import {
   getChatSettings,
   startSession,
   endSession,
   createTransaction,
   CURRENT_MOCK_BUYER_ID,
+  getPublicEventById,
   fetchRoomMessages,
   sendChatMessage,
   subscribeToRoom,
@@ -63,7 +64,7 @@ export default function ChatRoomPage() {
   const router = useRouter();
   const eventId = params.id as string;
   const sellerId = params.sellerId as string;
-  const event = getTimeSlotEventById(eventId);
+  const event = getPublicEventById(eventId);
   const seller = getSellerById(sellerId);
 
   const [products, setProducts] = useState<(Product & { soldOut: boolean })[]>([]);

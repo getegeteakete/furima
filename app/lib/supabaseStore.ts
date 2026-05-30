@@ -16,6 +16,7 @@
 // =============================================================
 
 import { supabase } from './supabase/client';
+import { getSellerByProfileId, type Seller } from './events';
 
 // 型は mockStore と共有（type-only import なので localStorage 実体は読み込まれない）
 import type {
@@ -266,6 +267,123 @@ export function getSellerAverageRating(sellerId: string): { average: number; cou
 export function getRemainingDays(expiresAt: string): number {
   const diff = new Date(expiresAt).getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / 86400000));
+}
+
+// =============================================================
+// 統一イベント: admin_events を唯一の正とし、公開/ライブ画面が読む形に合成
+// -------------------------------------------------------------
+// これにより予約(buyer_reservations) / チャット(messages) / セッション(active_sessions)
+// がすべて同じ event.id（例 'evt-001'）で揃い、開催成立判定が正しく計算できる。
+// 出店者・商品は静的マスタ(events.ts の sellers)から承認済み申請を引いて合成。
+// =============================================================
+export type PublicEventStatus = 'upcoming' | 'live' | 'ended' | 'cancelled';
+
+export type PublicEvent = {
+  id: string; // admin_events.id（共通イベントID）
+  startTime: string;
+  endTime: string;
+  region: string;
+  date: string;
+  title: string;
+  status: PublicEventStatus;
+  sellers: Seller[]; // 承認済み出店者（ショップマスタから合成）
+  reservationCount: number;
+  maxBuyers: number;
+};
+
+// admin_events の status を 公開向け status へ変換
+function toPublicStatus(s: AdminEventStatus): PublicEventStatus {
+  switch (s) {
+    case 'live':
+      return 'live';
+    case 'ended':
+      return 'ended';
+    case 'cancelled':
+      return 'cancelled';
+    default:
+      return 'upcoming'; // recruiting / seller_closed は公開上「開催前」
+  }
+}
+
+function adminEventToPublic(e: AdminEvent): PublicEvent {
+  const approvedSellers = e.sellerApplications
+    .filter((a) => a.status === 'approved')
+    .map((a) => getSellerByProfileId(a.sellerId))
+    .filter((s): s is Seller => Boolean(s));
+  return {
+    id: e.id,
+    startTime: e.startTime,
+    endTime: e.endTime,
+    region: e.region,
+    date: e.date,
+    title: e.title,
+    status: toPublicStatus(e.status),
+    sellers: approvedSellers,
+    reservationCount: e.buyerReservations.length,
+    maxBuyers: e.maxBuyers,
+  };
+}
+
+// 公開イベント一覧（中止は除外）
+export function getPublicEvents(): PublicEvent[] {
+  return cache.events
+    .filter((e) => e.status !== 'cancelled')
+    .map(adminEventToPublic)
+    .sort((a, b) => (a.startTime < b.startTime ? -1 : 1));
+}
+
+export function getPublicEventById(id: string): PublicEvent | undefined {
+  const e = getAdminEventById(id);
+  return e ? adminEventToPublic(e) : undefined;
+}
+
+// =============================================================
+// 開催成立判定（元仕様③）
+//   条件: 3名以上の予約 AND 3アカウント以上のチャット発生
+// チャットの「アカウント数」は messages テーブルの distinct な参加者で数える。
+// =============================================================
+export const OPEN_THRESHOLD = { minReservations: 3, minChatAccounts: 3 } as const;
+
+export type OpenEligibility = {
+  reservationCount: number;
+  chatAccountCount: number;
+  reservationsMet: boolean;
+  chatMet: boolean;
+  eligible: boolean;
+};
+
+// チャットに参加した一意アカウント数を取得（購入者・出店者の sender_id を集計）
+export async function getChatAccountCount(eventId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('sender_id, sender_role')
+    .eq('event_id', eventId)
+    .neq('sender_role', 'system');
+  if (error) {
+    persistError('getChatAccountCount', error);
+    return 0;
+  }
+  const ids = new Set<string>();
+  for (const r of data ?? []) {
+    if (r.sender_id) ids.add(r.sender_id);
+  }
+  return ids.size;
+}
+
+// イベントが開催成立条件を満たすか判定（予約は同期キャッシュ、チャットはDB集計）
+export async function checkOpenEligibility(eventId: string): Promise<OpenEligibility> {
+  const event = getAdminEventById(eventId);
+  const reservationCount = event?.buyerReservations.length ?? 0;
+  const chatAccountCount = await getChatAccountCount(eventId);
+  const reservationsMet = reservationCount >= OPEN_THRESHOLD.minReservations;
+  const chatMet = chatAccountCount >= OPEN_THRESHOLD.minChatAccounts;
+  return {
+    reservationCount,
+    chatAccountCount,
+    reservationsMet,
+    chatMet,
+    eligible: reservationsMet && chatMet,
+  };
 }
 
 // =============================================================

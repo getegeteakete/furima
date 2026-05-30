@@ -132,6 +132,10 @@ export const sellers: Seller[] = [
 ];
 
 // 時間帯・地域ごとのイベント（複数出店者を含む）
+// ⚠️ DEPRECATED: イベントの正は admin_events（DB）に統一済み。
+//   公開/ライブ画面は getPublicEvents() / getPublicEventById() を使うこと。
+//   この静的データは出店者(sellers)・商品マスタの参照元としてのみ残置。
+//   新規に timeSlotEvents をイベントとして参照しないこと（IDが二重化するため）。
 export const timeSlotEvents: TimeSlotEvent[] = [
   {
     id: '2000-shiga',
@@ -187,6 +191,33 @@ export const getTimeSlotEventById = (id: string): TimeSlotEvent | undefined => {
 
 export const getSellerById = (id: string): Seller | undefined => {
   return sellers.find((s) => s.id === id);
+};
+
+// =============================================================
+// 出店者アカウント(profile.id) ↔ ショップ(seller.id) の対応表
+// -------------------------------------------------------------
+// seed.sql の profiles と sellers を繋ぐ唯一の正。
+//   profiles.id 'seller-mina'  ⇔ sellers.id 'mina-craft'
+// 本番では profiles.shop_id 列（0002_production_rls.sql）がこの対応を担うが、
+// アプリ側でも参照できるようここに集約する。新しい出店者を追加したら両方を更新。
+// =============================================================
+export const PROFILE_TO_SHOP: Record<string, string> = {
+  'seller-mina': 'mina-craft',
+  'seller-kyoto': 'kyoto-vintage',
+  'seller-osaka': 'osaka-antique',
+  'seller-fukuoka': 'fukuoka-handmade',
+  'seller-hokkaido': 'hokkaido-craft',
+};
+
+export const SHOP_TO_PROFILE: Record<string, string> = Object.fromEntries(
+  Object.entries(PROFILE_TO_SHOP).map(([profileId, shopId]) => [shopId, profileId]),
+);
+
+// 出店申請等で使う profile.id から、ショップ(Seller)を引く。
+// まず対応表、無ければ seller.id 一致でフォールバック（ショップIDを直接渡された場合）。
+export const getSellerByProfileId = (profileId: string): Seller | undefined => {
+  const shopId = PROFILE_TO_SHOP[profileId] ?? profileId;
+  return getSellerById(shopId);
 };
 
 // 後方互換性のための関数（古いEventType）

@@ -5,7 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
-import { timeSlotEvents, sellers } from '../lib/events';
+import { sellers } from '../lib/events';
+import { getPublicEvents } from '../lib/supabaseStore';
+import { useStoreData } from '../lib/useStore';
 import { ProductIcon } from '../components/Icons';
 import Link from 'next/link';
 
@@ -13,8 +15,9 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const q = searchParams.get('q') || '';
   const [query, setQuery] = useState(q);
+  const [publicEvents] = useStoreData(getPublicEvents);
 
-  const eventResults = timeSlotEvents.filter((e) =>
+  const eventResults = publicEvents.filter((e) =>
     e.region.toLowerCase().includes(query.toLowerCase()) ||
     e.sellers.some((s) => s.name.toLowerCase().includes(query.toLowerCase()))
   );

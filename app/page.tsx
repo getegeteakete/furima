@@ -26,10 +26,10 @@ import {
 } from './components/Icons';
 import type { ProductIconType } from './components/Icons';
 
-const SHOPPING_EVENTS: { slug: string; time: string; region: string; name: string; tags: string[]; live: boolean; icon: ProductIconType }[] = [
-  { slug: 'mina-craft', time: '20:00', region: '滋賀', name: 'mina.craft', tags: ['ハンドメイド', 'アクセ'], live: true, icon: 'diamond' },
-  { slug: 'kyoto-vintage', time: '20:15', region: '京都', name: 'kyoto.vintage', tags: ['古着', 'レトロ'], live: false, icon: 'shirt' },
-  { slug: 'osaka-antique', time: '20:30', region: '大阪', name: 'osaka.antique', tags: ['雑貨', '骨董'], live: false, icon: 'package' },
+const SHOPPING_EVENTS: { slug: string; eventId: string; time: string; region: string; name: string; tags: string[]; live: boolean; icon: ProductIconType }[] = [
+  { slug: 'mina-craft', eventId: 'evt-001', time: '20:00', region: '滋賀', name: 'mina.craft', tags: ['ハンドメイド', 'アクセ'], live: true, icon: 'diamond' },
+  { slug: 'kyoto-vintage', eventId: 'evt-002', time: '20:15', region: '京都', name: 'kyoto.vintage', tags: ['古着', 'レトロ'], live: false, icon: 'shirt' },
+  { slug: 'osaka-antique', eventId: 'evt-003', time: '20:30', region: '大阪', name: 'osaka.antique', tags: ['雑貨', '骨董'], live: false, icon: 'package' },
 ];
 
 const ITEM_CATEGORIES = [
@@ -196,7 +196,7 @@ export default function Home() {
             {SHOPPING_EVENTS.map((event, idx) => (
               <div key={idx} className="col-span-12 sm:col-span-6 lg:col-span-4">
                 <Link
-                  href={`/event/${event.slug}`}
+                  href={`/event/${event.eventId}`}
                   className="block bg-white dark:bg-gray-950/10 backdrop-blur border border-white/20 rounded-3xl p-7 lg:p-8 text-left hover:bg-white dark:bg-gray-950/20 hover:scale-105 transition-all h-full"
                 >
                   <div className="flex items-center justify-between mb-5">

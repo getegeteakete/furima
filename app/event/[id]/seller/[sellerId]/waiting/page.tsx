@@ -16,14 +16,15 @@ import {
   HourglassIcon,
   SparklesIcon,
 } from '../../../../../components/Icons';
-import { getTimeSlotEventById, getSellerById } from '../../../../../lib/events';
+import { getSellerById } from '../../../../../lib/events';
+import { getPublicEventById } from '../../../../../lib/supabaseStore';
 
 export default function WaitingPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = params.id as string;
   const sellerId = params.sellerId as string;
-  const event = getTimeSlotEventById(eventId);
+  const event = getPublicEventById(eventId);
   const seller = getSellerById(sellerId);
 
   const [ticketNumber] = useState(3);
