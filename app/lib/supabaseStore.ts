@@ -140,6 +140,7 @@ function rowToProduct(p: Row): Product {
     description: p.description ?? '',
     soldOut: p.sold_out ?? false,
     stock: p.stock ?? null,
+    imageUrl: p.image_url ?? undefined,
   };
 }
 
@@ -397,7 +398,7 @@ export function getSellerPickupProducts(shopId: string, count = 5): Product[] {
 // 新規商品を登録。product_no はショップ内の最大+1を自動採番。
 export function createProduct(
   shopId: string,
-  data: { name: string; price: number; icon: Product['icon']; description?: string; stock?: number | null },
+  data: { name: string; price: number; icon: Product['icon']; description?: string; stock?: number | null; imageUrl?: string },
 ): Product {
   const current = cache.products[shopId] ?? [];
   const nextNo = current.reduce((m, p) => Math.max(m, p.id), 0) + 1;
@@ -409,6 +410,7 @@ export function createProduct(
     description: data.description ?? '',
     soldOut: false,
     stock: data.stock ?? null,
+    imageUrl: data.imageUrl,
   };
   cache.products = { ...cache.products, [shopId]: [...current, product] };
   notify('products');
@@ -423,6 +425,7 @@ export function createProduct(
       description: product.description,
       sold_out: false,
       stock: product.stock,
+      image_url: product.imageUrl ?? null,
     })
     .then(({ error }) => persistError('createProduct', error));
   return product;
@@ -447,6 +450,7 @@ export function updateProduct(
   if (updates.description !== undefined) patch.description = updates.description;
   if (updates.soldOut !== undefined) patch.sold_out = updates.soldOut;
   if (updates.stock !== undefined) patch.stock = updates.stock;
+  if (updates.imageUrl !== undefined) patch.image_url = updates.imageUrl || null;
   supabase
     .from('products')
     .update(patch)
@@ -1026,6 +1030,7 @@ export function subscribeToSellerPrivate(
 // ⚠️ 事前にSupabaseで public バケット 'chat-images' を作成しておくこと。
 // =============================================================
 const CHAT_IMAGE_BUCKET = 'chat-images';
+const PRODUCT_IMAGE_BUCKET = 'product-images';
 
 // dataURL を Blob に変換
 function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } {
@@ -1038,28 +1043,45 @@ function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } {
   return { blob: new Blob([bytes], { type: mime }), ext };
 }
 
-// 単一画像（dataURL）を Storage にアップロードし公開URLを返す。
-// 失敗時は null（呼び出し側で dataURL フォールバック可）。
-export async function uploadChatImage(
+// 任意バケットへ単一画像（dataURL）をアップロードし公開URLを返す。失敗時 null。
+async function uploadImage(
   dataUrl: string,
+  bucket: string,
   pathPrefix: string,
 ): Promise<string | null> {
   try {
     const { blob, ext } = dataUrlToBlob(dataUrl);
     const path = `${pathPrefix}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const { error } = await supabase.storage
-      .from(CHAT_IMAGE_BUCKET)
+      .from(bucket)
       .upload(path, blob, { contentType: blob.type, upsert: false });
     if (error) {
-      persistError('uploadChatImage', error);
+      persistError(`uploadImage(${bucket})`, error);
       return null;
     }
-    const { data } = supabase.storage.from(CHAT_IMAGE_BUCKET).getPublicUrl(path);
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl;
   } catch (e) {
-    persistError('uploadChatImage(exception)', e);
+    persistError(`uploadImage(${bucket}) exception`, e);
     return null;
   }
+}
+
+// 単一チャット画像（dataURL）を Storage にアップロードし公開URLを返す。
+export async function uploadChatImage(
+  dataUrl: string,
+  pathPrefix: string,
+): Promise<string | null> {
+  return uploadImage(dataUrl, CHAT_IMAGE_BUCKET, pathPrefix);
+}
+
+// 商品画像（dataURL）を product-images バケットへアップロードし公開URLを返す。
+// 失敗時は null（呼び出し側でアイコン表示にフォールバック）。
+export async function uploadProductImage(
+  dataUrl: string,
+  shopId: string,
+): Promise<string | null> {
+  return uploadImage(dataUrl, PRODUCT_IMAGE_BUCKET, shopId);
 }
 
 // 複数 dataURL をまとめてアップロード。アップロード失敗分は dataURL のまま残す

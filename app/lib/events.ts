@@ -8,6 +8,7 @@ export type Product = {
   description: string;
   soldOut?: boolean; // SOLD OUT表示（DB: sold_out）
   stock?: number | null; // 在庫数（null=在庫管理しない）
+  imageUrl?: string; // 商品画像の公開URL（DB: image_url・null=アイコン表示）
 };
 
 export type Seller = {

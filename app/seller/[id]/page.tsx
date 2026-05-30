@@ -13,6 +13,7 @@ import {
 } from '../../components/Icons';
 import { getSellerById } from '../../lib/events';
 import { getSellerProducts } from '../../lib/supabaseStore';
+import ProductThumb from '../../components/ProductThumb';
 import { useStoreData } from '../../lib/useStore';
 import { useFavorites } from '../../components/FavoritesContext';
 
@@ -125,8 +126,8 @@ export default function SellerProfilePage() {
                 key={product.id}
                 className="bg-white border-2 border-gray-200 rounded-2xl p-4 text-center hover:border-orange-300 transition-all"
               >
-                <div className="w-full aspect-square bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center mb-3 text-orange-600">
-                  <ProductIcon type={product.icon} size={32} stroke={1.5} />
+                <div className="w-full aspect-square bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center mb-3 text-orange-600 overflow-hidden">
+                  <ProductThumb product={product} iconSize={32} />
                 </div>
                 <p className="text-sm font-black text-gray-900 mb-2 line-clamp-2">{product.name}</p>
                 <p className="text-lg font-black text-orange-600">¥{product.price.toLocaleString()}</p>

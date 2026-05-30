@@ -15,6 +15,7 @@ import {
 } from '../../components/Icons';
 import { getPublicEventById, getBuyerActiveSession, getSellerPickupProducts, CURRENT_MOCK_BUYER_ID } from '../../lib/supabaseStore';
 import { useStoreData } from '../../lib/useStore';
+import ProductThumb from '../../components/ProductThumb';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -217,8 +218,8 @@ export default function EventDetailPage() {
                           key={product.id}
                           className="flex flex-col items-center text-center hover:scale-105 transition-transform cursor-pointer flex-shrink-0 w-20 sm:w-auto"
                         >
-                          <div className="w-full aspect-square bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center mb-2 text-orange-600">
-                            <ProductIcon type={product.icon} size={24} stroke={1.5} />
+                          <div className="w-full aspect-square bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center mb-2 text-orange-600 overflow-hidden">
+                            <ProductThumb product={product} iconSize={24} />
                           </div>
                           <p className="text-xs font-bold text-gray-900 line-clamp-1 mb-1 w-full">
                             {product.name}

@@ -30,10 +30,12 @@ import {
   updateProduct,
   deleteProduct,
   setProductSoldOut,
+  uploadProductImage,
 } from '../lib/supabaseStore';
 import { PROFILE_TO_SHOP, type Product } from '../lib/events';
 import { useStoreData } from '../lib/useStore';
 import { useAuth } from '../components/AuthProvider';
+import ProductThumb from '../components/ProductThumb';
 
 type Tab = 'overview' | 'products' | 'events' | 'transactions' | 'analytics';
 
@@ -354,9 +356,10 @@ type ProductForm = {
   icon: ProductIconType;
   description: string;
   stock: string; // 空=在庫管理しない
+  imageUrl: string; // 空=画像なし(アイコン表示)
 };
 
-const EMPTY_FORM: ProductForm = { name: '', price: '', icon: 'package', description: '', stock: '' };
+const EMPTY_FORM: ProductForm = { name: '', price: '', icon: 'package', description: '', stock: '', imageUrl: '' };
 
 function ProductManager({ shopId }: { shopId: string }) {
   const getter = useCallback(() => getSellerProducts(shopId), [shopId]);
@@ -365,6 +368,32 @@ function ProductManager({ shopId }: { shopId: string }) {
   const [editing, setEditing] = useState<'new' | number | null>(null);
   const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
+
+  const handleImageFile = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return setError('画像ファイルを選択してください');
+    setError('');
+    setUploading(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('読み込み失敗'));
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadProductImage(dataUrl, shopId);
+      if (url) {
+        setForm((f) => ({ ...f, imageUrl: url }));
+      } else {
+        setError('画像のアップロードに失敗しました（product-images バケット未作成の可能性）');
+      }
+    } catch {
+      setError('画像の処理に失敗しました');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const openNew = () => {
     setForm(EMPTY_FORM);
@@ -379,6 +408,7 @@ function ProductManager({ shopId }: { shopId: string }) {
       icon: p.icon,
       description: p.description ?? '',
       stock: p.stock == null ? '' : String(p.stock),
+      imageUrl: p.imageUrl ?? '',
     });
     setError('');
     setEditing(p.id);
@@ -400,7 +430,14 @@ function ProductManager({ shopId }: { shopId: string }) {
       return setError('在庫は0以上の整数、または空欄（管理しない）にしてください');
     }
     if (editing === 'new') {
-      createProduct(shopId, { name, price, icon: form.icon, description: form.description.trim(), stock });
+      createProduct(shopId, {
+        name,
+        price,
+        icon: form.icon,
+        description: form.description.trim(),
+        stock,
+        imageUrl: form.imageUrl || undefined,
+      });
     } else if (typeof editing === 'number') {
       updateProduct(shopId, editing, {
         name,
@@ -408,6 +445,7 @@ function ProductManager({ shopId }: { shopId: string }) {
         icon: form.icon,
         description: form.description.trim(),
         stock,
+        imageUrl: form.imageUrl, // '' なら画像クリア
       });
     }
     closeForm();
@@ -493,10 +531,40 @@ function ProductManager({ shopId }: { shopId: string }) {
               placeholder="透明感が美しいレジンの一点物"
             />
           </label>
+          <div>
+            <span className="text-xs font-bold text-gray-600">商品画像（任意・未設定ならアイコン表示）</span>
+            <div className="mt-2 flex items-center gap-4">
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-orange-600 flex-shrink-0">
+                <ProductThumb product={{ icon: form.icon, imageUrl: form.imageUrl || undefined, name: form.name }} iconSize={32} />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-xs font-bold hover:bg-gray-200 transition-all cursor-pointer w-fit">
+                  {uploading ? 'アップロード中…' : '画像を選択'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={(e) => handleImageFile(e.target.files?.[0])}
+                  />
+                </label>
+                {form.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, imageUrl: '' }))}
+                    className="text-xs font-bold text-red-600 hover:underline w-fit"
+                  >
+                    画像を削除
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
           <div className="flex items-center gap-3">
             <button
               onClick={save}
-              className="px-5 py-2.5 bg-orange-500 text-white rounded-full text-sm font-bold hover:bg-orange-600 transition-all"
+              disabled={uploading}
+              className="px-5 py-2.5 bg-orange-500 text-white rounded-full text-sm font-bold hover:bg-orange-600 transition-all disabled:opacity-50"
             >
               保存
             </button>
@@ -519,8 +587,8 @@ function ProductManager({ shopId }: { shopId: string }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {products.map((product) => (
             <div key={product.id} className="bg-white rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden hover:shadow-md transition-all">
-              <div className="relative aspect-square bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-orange-700">
-                <ProductIcon type={product.icon} size={56} stroke={1.5} />
+              <div className="relative aspect-square bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-orange-700 overflow-hidden">
+                <ProductThumb product={product} iconSize={56} />
                 {product.soldOut && (
                   <span className="absolute top-2 left-2 px-2 py-1 bg-gray-900/80 text-white text-xs font-black rounded">
                     SOLD OUT

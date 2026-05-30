@@ -14,6 +14,7 @@ import {
 import { useFavorites } from '../components/FavoritesContext';
 import { sellers } from '../lib/events';
 import { getSellerProducts } from '../lib/supabaseStore';
+import ProductThumb from '../components/ProductThumb';
 
 export default function FavoritesPage() {
   const { followingSellers, toggleFollow } = useFavorites();
@@ -99,8 +100,8 @@ export default function FavoritesPage() {
                             key={product.id}
                             className="flex flex-col items-center text-center"
                           >
-                            <div className="w-full aspect-square bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center mb-1 text-orange-600">
-                              <ProductIcon type={product.icon} size={16} stroke={1.5} />
+                            <div className="w-full aspect-square bg-gradient-to-br from-orange-100 to-orange-200 rounded-lg flex items-center justify-center mb-1 text-orange-600 overflow-hidden">
+                              <ProductThumb product={product} iconSize={16} />
                             </div>
                             <p className="text-xs font-bold text-gray-900 line-clamp-1">
                               {product.name}

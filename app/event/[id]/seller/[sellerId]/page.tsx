@@ -30,6 +30,7 @@ import {
   type ChatRoomMessage,
 } from '../../../../lib/supabaseStore';
 import { useStoreData } from '../../../../lib/useStore';
+import ProductThumb from '../../../../components/ProductThumb';
 import { useAuth } from '../../../../components/AuthProvider';
 
 type Message = {
@@ -499,12 +500,12 @@ export default function ChatRoomPage() {
       <div className="flex-shrink-0 sm:flex-1 bg-white border-b-4 border-orange-100 flex flex-col overflow-hidden min-h-0 max-h-[42vh] sm:max-h-none">
         <div className="p-4 bg-gradient-to-br from-orange-50 to-yellow-50 border-b border-orange-100 flex-shrink-0">
           <div className="flex gap-3 items-center">
-            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden ${
               products.find((p) => p.id === selectedProduct.id)?.soldOut
                 ? 'bg-gray-200 text-gray-400'
                 : 'bg-gradient-to-br from-orange-200 to-orange-400 text-orange-800'
             }`}>
-              <ProductIcon type={selectedProduct.icon} size={40} stroke={1.5} />
+              <ProductThumb product={selectedProduct} iconSize={40} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
@@ -557,7 +558,7 @@ export default function ChatRoomPage() {
                     ? 'bg-gray-100 text-gray-400'
                     : 'bg-gradient-to-br from-orange-100 to-yellow-100 text-orange-700'
                 }`}>
-                  <ProductIcon type={product.icon} size={32} stroke={1.5} />
+                  <ProductThumb product={product} iconSize={32} />
                   {product.soldOut && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                       <span className="text-white text-[10px] font-black bg-red-500 px-2 py-0.5 rounded-full transform -rotate-12">
@@ -729,8 +730,8 @@ export default function ChatRoomPage() {
             </div>
 
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-orange-200 to-orange-400 rounded-2xl mb-4 text-orange-800">
-                <ProductIcon type={selectedProduct.icon} size={40} stroke={1.5} />
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-orange-200 to-orange-400 rounded-2xl mb-4 text-orange-800 overflow-hidden">
+                <ProductThumb product={selectedProduct} iconSize={40} />
               </div>
               <p className="text-sm text-gray-600 mb-1">{selectedProduct.name}</p>
               <p className="text-4xl font-black text-orange-600">
