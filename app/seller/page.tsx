@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -50,17 +50,68 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'analytics', label: '売上分析' },
 ];
 
-const UPCOMING_EVENTS = [
-  { id: 1, date: '今日', time: '20:00-22:00', reserved: 7, max: 10, status: 'live' },
-  { id: 2, date: '明日', time: '20:00-22:00', reserved: 5, max: 10, status: 'upcoming' },
-  { id: 3, date: '12/20', time: '19:00-21:00', reserved: 2, max: 10, status: 'upcoming' },
-];
-
 export default function SellerPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   // 担当ショップ: profiles.shop_id（本番）→ デモ対応表 → 既定の順に解決
   const { profile } = useAuth();
   const shopId = profile?.shopId ?? PROFILE_TO_SHOP[profile?.id ?? ''] ?? 'mina-craft';
+  const profileId = profile?.id ?? '';
+
+  // 実データ: 取引（売上集計用）と、自分が承認済みのイベント
+  const txGetter = useCallback(() => getSellerTransactions(shopId), [shopId]);
+  const [sellerTx] = useStoreData(txGetter);
+  const myEventsGetter = useCallback(
+    () =>
+      getAdminEvents().filter((e) =>
+        e.sellerApplications.some((a) => a.sellerId === profileId && a.status === 'approved'),
+      ),
+    [profileId],
+  );
+  const [myEvents] = useStoreData(myEventsGetter);
+
+  // 売上・販売点数・評価・開催回数・月別推移を取引から集計
+  const metrics = useMemo(() => {
+    const now = new Date();
+    const ym = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`;
+    const thisYM = ym(now);
+    const prevYM = ym(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    let revThis = 0;
+    let revPrev = 0;
+    let cntThis = 0;
+    let cntPrev = 0;
+    for (const t of sellerTx) {
+      const k = ym(new Date(t.purchasedAt));
+      if (k === thisYM) {
+        revThis += t.productPrice;
+        cntThis += 1;
+      } else if (k === prevYM) {
+        revPrev += t.productPrice;
+        cntPrev += 1;
+      }
+    }
+    const ratings = sellerTx
+      .map((t) => t.buyerReview?.rating)
+      .filter((r): r is number => typeof r === 'number');
+    const avg = ratings.length ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+    const heldEvents = myEvents.filter((e) => e.status === 'ended').length;
+    const revChange = revPrev > 0 ? Math.round(((revThis - revPrev) / revPrev) * 100) : null;
+    const cntChange = cntThis - cntPrev;
+    const series: { label: string; value: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const k = ym(d);
+      const v = sellerTx
+        .filter((t) => ym(new Date(t.purchasedAt)) === k)
+        .reduce((a, t) => a + t.productPrice, 0);
+      series.push({ label: `${d.getMonth() + 1}月`, value: v });
+    }
+    return { revThis, cntThis, avg, ratingsCount: ratings.length, heldEvents, revChange, cntChange, series };
+  }, [sellerTx, myEvents]);
+
+  // 予定中/開催中のイベント（自分が承認済みのもの）
+  const upcomingEvents = myEvents
+    .filter((e) => e.status === 'recruiting' || e.status === 'seller_closed' || e.status === 'live')
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -143,10 +194,30 @@ export default function SellerPage() {
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
                 {[
-                  { label: '今月の売上', value: '¥48,200', change: '+15%', Icon: CoinIcon },
-                  { label: '販売点数', value: '47点', change: '+8点', Icon: PackageIcon },
-                  { label: 'イベント開催', value: '8回', change: '+2回', Icon: CalendarIcon },
-                  { label: '評価', value: '4.8', change: '★5つ', Icon: StarIcon },
+                  {
+                    label: '今月の売上',
+                    value: `¥${metrics.revThis.toLocaleString()}`,
+                    change: metrics.revChange === null ? '—' : `${metrics.revChange >= 0 ? '+' : ''}${metrics.revChange}%`,
+                    Icon: CoinIcon,
+                  },
+                  {
+                    label: '今月の販売点数',
+                    value: `${metrics.cntThis}点`,
+                    change: metrics.cntChange === 0 ? '±0点' : `${metrics.cntChange > 0 ? '+' : ''}${metrics.cntChange}点`,
+                    Icon: PackageIcon,
+                  },
+                  {
+                    label: '開催回数',
+                    value: `${metrics.heldEvents}回`,
+                    change: '累計',
+                    Icon: CalendarIcon,
+                  },
+                  {
+                    label: '評価',
+                    value: metrics.ratingsCount ? metrics.avg.toFixed(1) : '—',
+                    change: `${metrics.ratingsCount}件`,
+                    Icon: StarIcon,
+                  },
                 ].map((stat) => (
                   <div key={stat.label} className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-200 dark:border-gray-800 hover:shadow-md transition-all">
                     <div className="flex items-center justify-between mb-4">
@@ -172,28 +243,44 @@ export default function SellerPage() {
                   </Link>
                 </div>
                 <div className="divide-y divide-gray-100">
-                  {UPCOMING_EVENTS.map((event) => (
-                    <div key={event.id} className="px-6 py-5 flex items-center gap-4 hover:bg-orange-50 transition-colors">
+                  {upcomingEvents.length === 0 && (
+                    <p className="px-6 py-8 text-center text-sm text-gray-400">
+                      参加予定のイベントはありません。
+                    </p>
+                  )}
+                  {upcomingEvents.map((event) => {
+                    const reserved = event.buyerReservations.length;
+                    const max = event.maxBuyers || 1;
+                    return (
+                    <Link
+                      key={event.id}
+                      href={`/event/${event.id}/seller/${shopId}/console`}
+                      className="px-6 py-5 flex items-center gap-4 hover:bg-orange-50 transition-colors"
+                    >
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                         event.status === 'live' ? 'bg-red-100 text-red-600' : 'bg-orange-100 dark:bg-gray-800 text-orange-600'
                       }`}>
                         {event.status === 'live' ? <BoltIcon size={22} stroke={1.5} /> : <CalendarIcon size={22} stroke={1.5} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-gray-900">{event.date} {event.time}</p>
-                        <p className="text-xs text-gray-500">予約 {event.reserved}/{event.max}名</p>
+                        <p className="text-sm font-black text-gray-900">{event.date} {event.startTime}-{event.endTime}</p>
+                        <p className="text-xs text-gray-500">
+                          {event.region}・予約 {reserved}/{event.maxBuyers}名
+                          {event.status === 'live' && <span className="ml-1 text-red-500 font-bold">LIVE</span>}
+                        </p>
                       </div>
                       <div className="w-24 hidden sm:block">
                         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-gradient-to-r from-orange-400 to-orange-600"
-                            style={{ width: `${(event.reserved / event.max) * 100}%` }}
+                            style={{ width: `${Math.min(100, (reserved / max) * 100)}%` }}
                           />
                         </div>
                       </div>
                       <ArrowRightIcon size={16} stroke={2} className="text-orange-600" />
-                    </div>
-                  ))}
+                    </Link>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -235,19 +322,36 @@ export default function SellerPage() {
                 <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
                   <ChartIcon size={20} stroke={1.5} />
                 </div>
-                <h2 className="text-lg font-black text-gray-900">月別売上推移</h2>
+                <h2 className="text-lg font-black text-gray-900">月別売上推移（直近6ヶ月）</h2>
               </div>
-              <div className="flex items-end gap-2 sm:gap-3 h-48 sm:h-56">
-                {[35, 42, 28, 48, 55, 38, 62, 48].map((val, idx) => (
-                  <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                    <div
-                      className="w-full bg-gradient-to-t from-orange-500 to-orange-400 rounded-t-lg transition-all hover:opacity-80 min-h-[20px]"
-                      style={{ height: `${val}%` }}
-                    />
-                    <span className="text-xs text-gray-500">{idx + 5}月</span>
+              {(() => {
+                const maxVal = Math.max(1, ...metrics.series.map((s) => s.value));
+                const total = metrics.series.reduce((a, s) => a + s.value, 0);
+                if (total === 0) {
+                  return (
+                    <p className="text-center text-sm text-gray-400 py-12">
+                      まだ売上データがありません。取引が確定すると、ここに月別の売上が表示されます。
+                    </p>
+                  );
+                }
+                return (
+                  <div className="flex items-end gap-2 sm:gap-3 h-48 sm:h-56">
+                    {metrics.series.map((s) => (
+                      <div key={s.label} className="flex-1 flex flex-col items-center gap-2">
+                        <span className="text-[10px] text-gray-500 font-bold">
+                          {s.value > 0 ? `¥${(s.value / 1000).toFixed(0)}k` : ''}
+                        </span>
+                        <div
+                          className="w-full bg-gradient-to-t from-orange-500 to-orange-400 rounded-t-lg transition-all hover:opacity-80 min-h-[4px]"
+                          style={{ height: `${(s.value / maxVal) * 100}%` }}
+                          title={`¥${s.value.toLocaleString()}`}
+                        />
+                        <span className="text-xs text-gray-500">{s.label}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
             </div>
           )}
 
