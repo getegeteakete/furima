@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
-import { getTransactions } from '../../lib/supabaseStore';
-import type { Transaction } from '../../lib/supabaseStore';
+import { useMemo, useEffect, useState } from 'react';
+import { getTransactions, getPageViewStats } from '../../lib/supabaseStore';
+import type { Transaction, PageViewStats } from '../../lib/supabaseStore';
 import { useStoreData } from '../../lib/useStore';
 import {
   ChartIcon,
@@ -32,6 +32,23 @@ type SellerRank = {
 
 export default function AdminAnalyticsPage() {
   const [transactions] = useStoreData(getTransactions);
+
+  // アクセス解析（直近14日）。マウント時に1回取得。
+  const [pv, setPv] = useState<PageViewStats | null>(null);
+  const [pvLoading, setPvLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    getPageViewStats(14)
+      .then((s) => {
+        if (active) setPv(s);
+      })
+      .finally(() => {
+        if (active) setPvLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // 売れ筋商品: 商品名×出店者で件数・金額を集計し、販売数の多い順。
   const productRanking = useMemo<ProductRank[]>(() => {
@@ -209,6 +226,90 @@ export default function AdminAnalyticsPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* アクセス解析（直近14日） */}
+      <div>
+        <h2 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
+          <ChartIcon size={20} stroke={2} className="text-orange-600" />
+          アクセス解析
+          <span className="text-xs font-medium text-gray-400">（直近14日・匿名集計）</span>
+        </h2>
+
+        {pvLoading ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-sm text-gray-400">
+            読み込み中...
+          </div>
+        ) : !pv || pv.totalViews === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-sm text-gray-400">
+            まだアクセスデータがありません（page_views テーブル未作成、または訪問なし）
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* PV KPI */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <p className="text-2xl font-black text-gray-900">{pv.totalViews.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-1">総ページビュー</p>
+              </div>
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <p className="text-2xl font-black text-gray-900">{pv.uniqueSessions.toLocaleString()}</p>
+                <p className="text-xs text-gray-500 mt-1">ユニークセッション</p>
+              </div>
+            </div>
+
+            {/* 日別推移（簡易バー） */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <p className="text-sm font-bold text-gray-700 mb-4">日別アクセス推移</p>
+              {(() => {
+                const maxDay = Math.max(...pv.byDay.map((d) => d.views), 1);
+                return (
+                  <div className="flex items-end gap-1.5 h-32">
+                    {pv.byDay.map((d) => (
+                      <div key={d.date} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                        <span className="text-[10px] text-gray-500">{d.views}</span>
+                        <div
+                          className="w-full bg-gradient-to-t from-orange-500 to-orange-300 rounded-t"
+                          style={{ height: `${(d.views / maxDay) * 100}%`, minHeight: '2px' }}
+                          title={`${d.date}: ${d.views}PV`}
+                        />
+                        <span className="text-[9px] text-gray-400 truncate w-full text-center">
+                          {d.date.slice(5)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* 人気ページ */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <p className="text-sm font-bold text-gray-700 px-5 pt-5 pb-2">人気ページ TOP10</p>
+              {pv.topPaths.map((p, i) => {
+                const maxPath = pv.topPaths[0]?.views ?? 1;
+                return (
+                  <div
+                    key={p.path}
+                    className={`flex items-center gap-4 px-5 py-3 ${i !== 0 ? 'border-t border-gray-100' : ''}`}
+                  >
+                    <span className="w-6 text-xs font-black text-gray-400 flex-shrink-0">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900 truncate">{p.path}</p>
+                      <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full"
+                          style={{ width: `${(p.views / maxPath) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <span className="font-black text-gray-900 flex-shrink-0">{p.views}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -15,7 +15,7 @@
 //   app/components/StoreProvider を ClientWrapper に追加するだけ。
 // =============================================================
 
-import { supabase } from './supabase/client';
+import { supabase, isSupabaseConfigured } from './supabase/client';
 import { getSellerById, PROFILE_TO_SHOP, type Seller, type Product } from './events';
 
 // 型は mockStore と共有（type-only import なので localStorage 実体は読み込まれない）
@@ -1665,4 +1665,82 @@ export function subscribeToNotifications(
 // 開発用リセットは Supabase 版では非対応（DBはダッシュボードで管理）
 export function resetMockStore(): void {
   console.warn('[supabaseStore] resetMockStore は Supabase 版では無効です。');
+}
+
+// =============================================================
+// アクセス数(PV)トラッキング（page_views テーブル）
+// -------------------------------------------------------------
+// 運営管理者機能(サイト管理): アクセス数確認。
+// 個人特定情報は保持しない。匿名のセッションID(sessionStorage)とパスのみ記録。
+// =============================================================
+
+// ブラウザ単位の匿名セッションIDを取得（無ければ生成して sessionStorage に保持）。
+function getOrCreateSessionId(): string {
+  if (!isBrowser()) return 'server';
+  try {
+    const KEY = 'furima_pv_session';
+    let id = sessionStorage.getItem(KEY);
+    if (!id) {
+      id = `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+      sessionStorage.setItem(KEY, id);
+    }
+    return id;
+  } catch {
+    return 'anon';
+  }
+}
+
+// 1ページビューを記録（fire-and-forget）。クエリ・ハッシュは除去して保存。
+export function recordPageView(rawPath: string): void {
+  if (!isBrowser() || !isSupabaseConfigured) return;
+  const path = (rawPath.split('?')[0].split('#')[0] || '/').slice(0, 300);
+  const session_id = getOrCreateSessionId();
+  supabase
+    .from('page_views')
+    .insert({ path, session_id })
+    .then(({ error }) => {
+      // 記録失敗はユーザー体験に影響させない（黙ってスキップ）
+      if (error) console.debug('[recordPageView] skip:', error.message);
+    });
+}
+
+export type PageViewStats = {
+  totalViews: number;
+  uniqueSessions: number;
+  byDay: { date: string; views: number }[]; // 直近の日別（昇順）
+  topPaths: { path: string; views: number }[]; // 多い順
+};
+
+// 直近 days 日のアクセス統計を集計して返す。失敗時は空集計。
+export async function getPageViewStats(days = 14): Promise<PageViewStats> {
+  const empty: PageViewStats = { totalViews: 0, uniqueSessions: 0, byDay: [], topPaths: [] };
+  if (!isSupabaseConfigured) return empty;
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { data, error } = await supabase
+    .from('page_views')
+    .select('path, session_id, viewed_at')
+    .gte('viewed_at', since)
+    .order('viewed_at', { ascending: true })
+    .limit(20000);
+  if (error || !data) {
+    persistError('getPageViewStats', error);
+    return empty;
+  }
+  const sessions = new Set<string>();
+  const dayMap = new Map<string, number>();
+  const pathMap = new Map<string, number>();
+  for (const r of data as { path: string; session_id: string; viewed_at: string }[]) {
+    sessions.add(r.session_id);
+    const day = r.viewed_at.slice(0, 10); // YYYY-MM-DD
+    dayMap.set(day, (dayMap.get(day) ?? 0) + 1);
+    pathMap.set(r.path, (pathMap.get(r.path) ?? 0) + 1);
+  }
+  const byDay = [...dayMap.entries()]
+    .map(([date, views]) => ({ date, views }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+  const topPaths = [...pathMap.entries()]
+    .map(([path, views]) => ({ path, views }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 10);
+  return { totalViews: data.length, uniqueSessions: sessions.size, byDay, topPaths };
 }

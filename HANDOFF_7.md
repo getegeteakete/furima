@@ -84,6 +84,8 @@ Supabase: 接続済み（URL: https://cccspbtjseallretqguz.supabase.co）
 - ※ 出店料の振込先列(fee_bank_info / fee_paypay_id)は SETUP_ALL に反映済み。
   既に SETUP_ALL を流した本番に追加だけしたい場合は
   `supabase/migrations/0010_chat_settings_fee_payout.sql` を Run（冪等）。
+- ※ アクセス数(PV)用 `page_views` テーブルも SETUP_ALL に反映済み。
+  既存本番へ追加だけなら `supabase/migrations/0011_page_views.sql` を Run（冪等）。
 
 ### ② Supabase Storage に public バケットを3つ作成
 - `chat-images` / `product-images` / `avatars`（New bucket → **Public**）。
@@ -126,12 +128,23 @@ Supabase: 接続済み（URL: https://cccspbtjseallretqguz.supabase.co）
 
 ```
 1. LINE通知 / LINE・Googleログイン … ★ユーザー指定でスコープ外★（当面やらない）
-2. アクセス数（PV）解析（要トラッキング基盤・現状なし）
-3. 整理券: callNextInQueue の前 serving done と endServingTicket の役割整理
+2. 整理券: callNextInQueue の前 serving done と endServingTicket の役割整理
    （#7 で接客終了ボタンを追加済。運用で重複しないか本番で確認）
+3. PVの本番RLS締め（現状 dev_all。0011 末尾コメントの pv_insert_any /
+   pv_select_staff に差し替えると INSERT全員可・SELECTスタッフのみになる）
 ```
 
-> ✅ #7 で「出店者→参加申請UI導線」「出店料の振込先表示」を実装済み（下記参照）。
+> ✅ #7 で「参加申請UI導線」「振込先表示」「アクセス数(PV)解析」を実装済み。
+
+### 7. アクセス数（PV）解析（#7 で実装）
+- 自前の軽量トラッキング。個人特定情報は持たず、匿名セッションID(sessionStorage)
+  とパスのみ記録。
+- DB: `supabase/migrations/0011_page_views.sql`（新規）＋ SETUP_ALL.sql に反映。
+  page_views(path, session_id, viewed_at)。dev_all（本番締めは 0011 末尾コメント）。
+- 記録: `app/components/PageViewTracker.tsx` を ClientWrapper に常設。
+  usePathname のパス変化ごとに `recordPageView()` を fire-and-forget で実行。
+- 集計: `getPageViewStats(days=14)` → 総PV / ユニークセッション / 日別推移 / 人気ページ。
+- 表示: `/admin/analytics` 下部に「アクセス解析」セクション（KPI＋日別バー＋人気ページTOP10）。
 
 ### 6. 出店料の振込先表示（#7 で実装）
 - 運営がチャット設定（/admin/chat-settings）で **出店料(¥1,200)の振込先**

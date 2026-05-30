@@ -553,3 +553,22 @@ alter table public.seller_applications
     check (fee_method is null or fee_method in ('bank','paypay')),
   add column if not exists fee_submitted_at timestamptz,
   add column if not exists fee_paid_at timestamptz;
+
+-- ========== [9/9] 0011_page_views.sql ==========
+-- =============================================================
+-- フリマライブ  アクセス数(PV)トラッキング  (0011_page_views.sql)
+-- =============================================================
+-- 運営管理者機能(サイト管理): アクセス数確認。個人特定情報は保持しない。
+-- =============================================================
+create table if not exists public.page_views (
+  id          uuid primary key default gen_random_uuid(),
+  path        text not null,
+  session_id  text not null,
+  viewed_at   timestamptz not null default now()
+);
+create index if not exists idx_page_views_viewed_at on public.page_views(viewed_at);
+create index if not exists idx_page_views_path on public.page_views(path);
+alter table public.page_views enable row level security;
+drop policy if exists dev_all on public.page_views;
+create policy dev_all on public.page_views
+  for all to anon, authenticated using (true) with check (true);
