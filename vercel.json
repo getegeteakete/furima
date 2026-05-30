@@ -5,5 +5,11 @@
   "devCommand": "next dev",
   "installCommand": "npm install",
   "outputDirectory": ".next",
-  "public": true
+  "public": true,
+  "crons": [
+    {
+      "path": "/api/cron/event-automation",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

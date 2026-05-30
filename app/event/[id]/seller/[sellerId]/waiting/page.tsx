@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Header from '../../../../../components/Header';
 import {
@@ -17,20 +17,34 @@ import {
   SparklesIcon,
 } from '../../../../../components/Icons';
 import { getSellerById } from '../../../../../lib/events';
-import { getPublicEventById } from '../../../../../lib/supabaseStore';
+import { getPublicEventById, reserveAsBuyer, CURRENT_MOCK_BUYER_ID } from '../../../../../lib/supabaseStore';
+import { useStoreData } from '../../../../../lib/useStore';
+import { useAuth } from '../../../../../components/AuthProvider';
 
 export default function WaitingPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = params.id as string;
   const sellerId = params.sellerId as string;
-  const event = getPublicEventById(eventId);
+  const eventGetter = useCallback(() => getPublicEventById(eventId), [eventId]);
+  const [event] = useStoreData(eventGetter);
   const seller = getSellerById(sellerId);
 
   const [ticketNumber] = useState(3);
   const [currentServing, setCurrentServing] = useState(1);
   const [secondsLeft, setSecondsLeft] = useState(15);
   const [signalReceived, setSignalReceived] = useState(false);
+
+  // ログイン中の購入者で来場予約を記録（成立判定の予約数に反映）
+  const { profile } = useAuth();
+  const buyerId = profile?.id ?? CURRENT_MOCK_BUYER_ID;
+  const reservedRef = useRef(false);
+  useEffect(() => {
+    // イベントがハイドレートされてから1回だけ予約（冪等・既予約は無視）
+    if (!event || reservedRef.current) return;
+    reservedRef.current = true;
+    reserveAsBuyer(eventId, buyerId);
+  }, [event, eventId, buyerId]);
 
   useEffect(() => {
     if (signalReceived) return;
