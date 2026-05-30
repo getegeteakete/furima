@@ -108,6 +108,10 @@ function rowToEvent(e: Row, apps: Row[], res: Row[]): AdminEvent {
         sellerName: a.seller_name,
         status: a.status as SellerApplicationStatus,
         appliedAt: a.applied_at,
+        feeStatus: (a.fee_status ?? 'unpaid') as 'unpaid' | 'submitted' | 'paid',
+        feeMethod: (a.fee_method ?? null) as 'bank' | 'paypay' | null,
+        feeSubmittedAt: a.fee_submitted_at ?? null,
+        feePaidAt: a.fee_paid_at ?? null,
       })),
     buyerReservations: res.filter((r) => r.event_id === e.id).map((r) => r.buyer_id),
   };
@@ -703,6 +707,66 @@ export function updateSellerApplication(
     .eq('event_id', eventId)
     .eq('seller_id', sellerId)
     .then(({ error }) => persistError('updateSellerApplication', error));
+}
+
+// 出店料（運営へ支払う固定額）
+export const SELLER_FEE_YEN = 1200;
+
+// 出店者が出店料の支払いを「申告」する（method を記録し submitted に）。
+export function submitSellerFee(
+  eventId: string,
+  sellerId: string,
+  method: 'bank' | 'paypay',
+): void {
+  const submittedAt = new Date().toISOString();
+  cache.events = cache.events.map((e) =>
+    e.id !== eventId
+      ? e
+      : {
+          ...e,
+          sellerApplications: e.sellerApplications.map((a) =>
+            a.sellerId === sellerId
+              ? { ...a, feeStatus: 'submitted', feeMethod: method, feeSubmittedAt: submittedAt }
+              : a,
+          ),
+        },
+  );
+  notify('events');
+  supabase
+    .from('seller_applications')
+    .update({ fee_status: 'submitted', fee_method: method, fee_submitted_at: submittedAt })
+    .eq('event_id', eventId)
+    .eq('seller_id', sellerId)
+    .then(({ error }) => persistError('submitSellerFee', error));
+}
+
+// 運営が入金を確認する（paid に）。取り消し（submitted 戻し）も同関数で可。
+export function confirmSellerFee(
+  eventId: string,
+  sellerId: string,
+  paid = true,
+): void {
+  const paidAt = paid ? new Date().toISOString() : null;
+  const nextStatus = paid ? 'paid' : 'submitted';
+  cache.events = cache.events.map((e) =>
+    e.id !== eventId
+      ? e
+      : {
+          ...e,
+          sellerApplications: e.sellerApplications.map((a) =>
+            a.sellerId === sellerId
+              ? { ...a, feeStatus: nextStatus, feePaidAt: paidAt }
+              : a,
+          ),
+        },
+  );
+  notify('events');
+  supabase
+    .from('seller_applications')
+    .update({ fee_status: nextStatus, fee_paid_at: paidAt })
+    .eq('event_id', eventId)
+    .eq('seller_id', sellerId)
+    .then(({ error }) => persistError('confirmSellerFee', error));
 }
 
 export function applyAsSeller(

@@ -38,6 +38,10 @@ export type SellerApplication = {
   sellerName: string;
   status: SellerApplicationStatus; // ④ 承認フロー
   appliedAt: string;
+  feeStatus?: 'unpaid' | 'submitted' | 'paid'; // 出店料の支払い状態
+  feeMethod?: 'bank' | 'paypay' | null; // 申告された支払い方法
+  feeSubmittedAt?: string | null;
+  feePaidAt?: string | null;
 };
 
 // ④ ユーザー権限

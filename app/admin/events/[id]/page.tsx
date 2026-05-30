@@ -7,6 +7,8 @@ import {
   getAdminEventById,
   setEventStatus,
   updateSellerApplication,
+  confirmSellerFee,
+  SELLER_FEE_YEN,
   deleteAdminEvent,
   checkOpenEligibility,
   OPEN_THRESHOLD,
@@ -242,8 +244,44 @@ export default function AdminEventDetailPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-sm text-gray-900">{s.sellerName}</p>
+                    <p className="text-[11px] text-gray-500">
+                      出店料 ¥{SELLER_FEE_YEN.toLocaleString()}
+                      {s.feeStatus === 'submitted' && s.feeMethod && (
+                        <span className="ml-1">
+                          ・申告: {s.feeMethod === 'bank' ? '銀行振込' : 'PayPay'}
+                        </span>
+                      )}
+                    </p>
                   </div>
-                  <span className="text-xs text-green-600 font-bold">出店確定</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span
+                      className={`text-[11px] font-bold px-2 py-1 rounded-full ${
+                        s.feeStatus === 'paid'
+                          ? 'bg-green-600 text-white'
+                          : s.feeStatus === 'submitted'
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {s.feeStatus === 'paid' ? '入金済' : s.feeStatus === 'submitted' ? '申告あり' : '未申告'}
+                    </span>
+                    {s.feeStatus === 'submitted' && (
+                      <button
+                        onClick={() => confirmSellerFee(event.id, s.sellerId)}
+                        className="px-3 py-1.5 bg-green-600 text-white rounded-full text-xs font-bold hover:bg-green-700 transition-colors active:scale-95"
+                      >
+                        入金確認
+                      </button>
+                    )}
+                    {s.feeStatus === 'paid' && (
+                      <button
+                        onClick={() => confirmSellerFee(event.id, s.sellerId, false)}
+                        className="text-[11px] text-gray-400 hover:text-red-600 transition-colors"
+                      >
+                        取消
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

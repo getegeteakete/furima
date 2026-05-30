@@ -31,6 +31,9 @@ import {
   deleteProduct,
   setProductSoldOut,
   uploadProductImage,
+  getAdminEvents,
+  submitSellerFee,
+  SELLER_FEE_YEN,
 } from '../lib/supabaseStore';
 import { PROFILE_TO_SHOP, type Product } from '../lib/events';
 import { useStoreData } from '../lib/useStore';
@@ -220,19 +223,7 @@ export default function SellerPage() {
           {activeTab === 'products' && <ProductManager shopId={shopId} />}
 
           {/* Events Tab */}
-          {activeTab === 'events' && (
-            <div className="bg-white rounded-3xl border border-gray-200 dark:border-gray-800 p-10 sm:p-12 text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-orange-50 rounded-3xl mb-5 text-orange-600">
-                <CalendarIcon size={40} stroke={1.5} />
-              </div>
-              <h2 className="text-lg sm:text-xl font-black text-gray-900 mb-3">イベント管理</h2>
-              <p className="text-sm text-gray-600 mb-8">開催スケジュールを管理します</p>
-              <button className="inline-flex items-center gap-2 px-7 py-3.5 bg-orange-500 text-white rounded-full text-sm font-bold hover:bg-orange-600 transition-all">
-                <PlusIcon size={16} stroke={2.5} />
-                新しいイベントを作成
-              </button>
-            </div>
-          )}
+          {activeTab === 'events' && <SellerFeePanel profileId={profile?.id ?? ''} />}
 
           {/* Transactions Tab - 取引履歴 */}
           {activeTab === 'transactions' && <SellerTransactions shopId={shopId} />}
@@ -638,6 +629,91 @@ function ProductManager({ shopId }: { shopId: string }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// 出店料の支払い（申告）パネル — 自分が申請したイベントごとに表示
+// 元仕様: 出店料1,200円（銀行振込/PayPay）を運営へ。申告→運営の入金確認で確定。
+function SellerFeePanel({ profileId }: { profileId: string }) {
+  const getter = useCallback(
+    () => getAdminEvents().filter((e) => e.sellerApplications.some((a) => a.sellerId === profileId)),
+    [profileId],
+  );
+  const [events] = useStoreData(getter);
+  const [method, setMethod] = useState<Record<string, 'bank' | 'paypay'>>({});
+
+  if (!profileId) {
+    return (
+      <div className="bg-white rounded-3xl border border-gray-200 dark:border-gray-800 p-8 text-center text-sm text-gray-500">
+        ログインすると、申請したイベントの出店料を申告できます。
+      </div>
+    );
+  }
+  if (events.length === 0) {
+    return (
+      <div className="bg-white rounded-3xl border border-gray-200 dark:border-gray-800 p-8 text-center text-sm text-gray-500">
+        まだ申請したイベントがありません。イベントに参加申請すると、ここで出店料を申告できます。
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 text-sm text-gray-700">
+        出店料は <span className="font-black text-orange-600">¥{SELLER_FEE_YEN.toLocaleString()}</span>（銀行振込 / PayPay）。
+        お支払い後に「支払いを申告」すると、運営の入金確認で出店が確定します。
+      </div>
+      {events.map((e) => {
+        const app = e.sellerApplications.find((a) => a.sellerId === profileId);
+        if (!app) return null;
+        const fee = app.feeStatus ?? 'unpaid';
+        const m = method[e.id] ?? app.feeMethod ?? 'bank';
+        return (
+          <div key={e.id} className="bg-white rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <div className="flex items-center justify-between mb-1">
+              <p className="font-black text-gray-900">{e.title}</p>
+              <span className="text-xs font-bold text-gray-500">{e.date} {e.startTime}〜</span>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              申請状態: {app.status === 'approved' ? '承認済み' : app.status === 'rejected' ? '却下' : '承認待ち'}
+            </p>
+            {fee === 'paid' ? (
+              <div className="flex items-center gap-2 text-sm font-black text-green-600">
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-[11px]">✓</span>
+                入金確認済み（出店確定）
+              </div>
+            ) : fee === 'submitted' ? (
+              <div className="bg-yellow-50 rounded-xl p-3">
+                <p className="text-sm text-yellow-700 font-bold">
+                  支払い申告済み（{app.feeMethod === 'paypay' ? 'PayPay' : '銀行振込'}）— 運営の入金確認待ち
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex gap-2">
+                  {(['bank', 'paypay'] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setMethod((prev) => ({ ...prev, [e.id]: opt }))}
+                      className={`px-3 py-2 rounded-full text-xs font-bold border transition-all ${
+                        m === opt ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-300'
+                      }`}
+                    >
+                      {opt === 'bank' ? '銀行振込' : 'PayPay'}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => submitSellerFee(e.id, profileId, m)}
+                  className="px-5 py-2.5 bg-orange-500 text-white rounded-full text-sm font-black hover:bg-orange-600 transition-all active:scale-95"
+                >
+                  ¥{SELLER_FEE_YEN.toLocaleString()} の支払いを申告
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
