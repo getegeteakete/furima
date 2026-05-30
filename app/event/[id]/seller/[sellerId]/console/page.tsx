@@ -65,6 +65,11 @@ function ConsoleInner() {
 
   // 'public' = 全体チャット / それ以外は購入者ID（個別ルーム）
   const [activeRoom, setActiveRoom] = useState<'public' | string>('public');
+  // 購読を張り直さずに最新の activeRoom を参照するための ref
+  const activeRoomRef = useRef<'public' | string>('public');
+  useEffect(() => {
+    activeRoomRef.current = activeRoom;
+  }, [activeRoom]);
   const [buyers, setBuyers] = useState<BuyerRoom[]>([]);
   const [publicMsgs, setPublicMsgs] = useState<Message[]>([]);
   const [privateMsgs, setPrivateMsgs] = useState<Record<string, Message[]>>({});
@@ -111,7 +116,9 @@ function ConsoleInner() {
     return () => {
       active = false;
     };
-  }, [event, seller]);
+    // event はレンダー毎に新オブジェクトになるため id で固定（再取得ループ防止）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId, sellerId, event?.id, seller?.id]);
 
   // Realtime: 全体チャット + 自分宛の全個別ルーム
   useEffect(() => {
@@ -133,7 +140,7 @@ function ConsoleInner() {
       // 未読カウント（購入者からの発言で、開いていないルーム）
       if (m.senderRole === 'buyer') {
         setUnread((prev) =>
-          activeRoom === bId ? prev : { ...prev, [bId]: (prev[bId] ?? 0) + 1 },
+          activeRoomRef.current === bId ? prev : { ...prev, [bId]: (prev[bId] ?? 0) + 1 },
         );
       }
     });
@@ -141,7 +148,9 @@ function ConsoleInner() {
       unsubPublic();
       unsubPrivate();
     };
-  }, [event, seller, activeRoom, appendUnique, appendToBuyer]);
+    // event はレンダー毎に新オブジェクトになるため id で固定し、活性ルームは ref 参照。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId, sellerId, event?.id, seller?.id, appendUnique, appendToBuyer]);
 
   // ルームを開いたら未読クリア
   useEffect(() => {

@@ -175,7 +175,10 @@ export default function ChatRoomPage() {
       unsubPrivate();
       unsubPublic();
     };
-  }, [event, seller, buyerId]);
+    // 依存は安定したIDのみ（event はレンダー毎に新オブジェクトになるため id で固定）。
+    // これによりカウントダウンの再描画ごとに購読を張り直す/履歴を再取得するのを防ぐ。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId, sellerId, buyerId, event?.id, seller?.id]);
 
   // ⑧⑨ チャット設定を読み込み + ⑥ セッション開始（ロック取得）
   useEffect(() => {
