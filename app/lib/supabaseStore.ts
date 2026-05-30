@@ -882,6 +882,67 @@ export function subscribeToSellerPrivate(
   };
 }
 
+// =============================================================
+// 画像アップロード（Supabase Storage）
+// -------------------------------------------------------------
+// チャット画像を dataURL でDB保存していたのを Storage へ移行。
+// バケット 'chat-images'（public）に保存し、公開URLを messages.images に格納する。
+// ⚠️ 事前にSupabaseで public バケット 'chat-images' を作成しておくこと。
+// =============================================================
+const CHAT_IMAGE_BUCKET = 'chat-images';
+
+// dataURL を Blob に変換
+function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } {
+  const [meta, b64] = dataUrl.split(',');
+  const mime = /data:(.*?);/.exec(meta)?.[1] ?? 'image/png';
+  const ext = mime.split('/')[1]?.split('+')[0] ?? 'png';
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return { blob: new Blob([bytes], { type: mime }), ext };
+}
+
+// 単一画像（dataURL）を Storage にアップロードし公開URLを返す。
+// 失敗時は null（呼び出し側で dataURL フォールバック可）。
+export async function uploadChatImage(
+  dataUrl: string,
+  pathPrefix: string,
+): Promise<string | null> {
+  try {
+    const { blob, ext } = dataUrlToBlob(dataUrl);
+    const path = `${pathPrefix}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage
+      .from(CHAT_IMAGE_BUCKET)
+      .upload(path, blob, { contentType: blob.type, upsert: false });
+    if (error) {
+      persistError('uploadChatImage', error);
+      return null;
+    }
+    const { data } = supabase.storage.from(CHAT_IMAGE_BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  } catch (e) {
+    persistError('uploadChatImage(exception)', e);
+    return null;
+  }
+}
+
+// 複数 dataURL をまとめてアップロード。アップロード失敗分は dataURL のまま残す
+// （表示は維持しつつ、成功したものは軽量なURLに置き換わる）。
+export async function uploadChatImages(
+  dataUrls: string[],
+  pathPrefix: string,
+): Promise<string[]> {
+  if (dataUrls.length === 0) return [];
+  const results = await Promise.all(
+    dataUrls.map(async (d) => {
+      if (!d.startsWith('data:')) return d; // 既にURLならそのまま
+      const url = await uploadChatImage(d, pathPrefix);
+      return url ?? d;
+    }),
+  );
+  return results;
+}
+
 // 開発用リセットは Supabase 版では非対応（DBはダッシュボードで管理）
 export function resetMockStore(): void {
   console.warn('[supabaseStore] resetMockStore は Supabase 版では無効です。');

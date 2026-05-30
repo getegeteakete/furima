@@ -23,6 +23,7 @@ import {
   fetchRoomMessages,
   sendChatMessage,
   subscribeToRoom,
+  uploadChatImages,
   type ChatSettings,
   type ChatRoomMessage,
 } from '../../../../lib/supabaseStore';
@@ -255,9 +256,13 @@ export default function ChatRoomPage() {
     if (!event || !seller) return;
 
     const text = input.trim();
-    const images = selectedImages.map((i) => i.dataUrl);
+    const dataUrls = selectedImages.map((i) => i.dataUrl);
     setInput('');
     setSelectedImages([]);
+
+    // 画像を Storage にアップロードして公開URL化（失敗分は dataURL のまま）
+    const images =
+      dataUrls.length > 0 ? await uploadChatImages(dataUrls, `${event.id}/${seller.id}/${buyerId}`) : [];
 
     // 実DBへ送信（Realtime購読が自分の挿入も受信して画面へ反映。appendUniqueで重複防止）
     const saved = await sendChatMessage({
