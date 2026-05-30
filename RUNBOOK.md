@@ -29,6 +29,7 @@ notifications / messages / transactions …` が並んでいればOK。
 |---|---|---|
 | `chat-images` | **Public にチェック** | チャット添付画像 |
 | `product-images` | **Public にチェック** | 商品画像 |
+| `avatars` | **Public にチェック** | プロフィール画像 |
 
 ※ 未作成でも落ちません（dataURL / アイコン表示にフォールバック）が、
 作成すると画像が正しく公開URLで保存されます。

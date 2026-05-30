@@ -21,7 +21,7 @@ import {
   CURRENT_MOCK_BUYER_ID,
   getPublicEventById,
   getSellerProducts,
-  setProductSoldOut,
+  decrementStock,
   fetchRoomMessages,
   sendChatMessage,
   subscribeToRoom,
@@ -325,11 +325,16 @@ export default function ChatRoomPage() {
     if (!selectedProduct || !event || !seller) return;
     setShowPurchaseModal(false);
 
+    // 在庫を1減算（在庫管理ありなら数量減、なし/未登録なら即SOLD OUT）。
+    // DBへ永続化され、出店者・他購入者にも Realtime で反映される。
+    const result = decrementStock(seller.id, selectedProduct.id);
     setProducts((prev) =>
-      prev.map((p) => (p.id === selectedProduct.id ? { ...p, soldOut: true } : p))
+      prev.map((p) =>
+        p.id === selectedProduct.id
+          ? { ...p, soldOut: result.soldOut, stock: result.stock }
+          : p,
+      ),
     );
-    // SOLD OUT をDBへ永続化（出店者・他購入者にもRealtimeで反映）
-    setProductSoldOut(seller.id, selectedProduct.id, true);
 
     // 購入確定の連絡を実チャットへ送信（出店者にリアルタイムで届く）
     const saved = await sendChatMessage({

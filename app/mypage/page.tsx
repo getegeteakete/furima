@@ -5,16 +5,40 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import PageHero from '../components/PageHero';
 import { ArrowRightIcon, StarIcon, ClockIcon, ReceiptIcon } from '../components/Icons';
-import { getBuyerTransactions, getRemainingDays } from '../lib/supabaseStore';
+import { getBuyerTransactions, getRemainingDays, uploadAvatar, updateProfileAvatar } from '../lib/supabaseStore';
 import { useStoreData } from '../lib/useStore';
-import { useCallback } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { useAuth } from '../components/AuthProvider';
 
 export default function MyPage() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, refreshProfile } = useAuth();
   const buyerId = user?.id ?? '__none__';
   const getter = useCallback(() => getBuyerTransactions(buyerId), [buyerId]);
   const [transactions] = useStoreData(getter);
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const onPickAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile) return;
+    setUploading(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const url = await uploadAvatar(dataUrl, profile.id);
+      if (url) {
+        await updateProfileAvatar(profile.id, url);
+        await refreshProfile();
+      }
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
 
   // 未ログイン時はログイン誘導
   if (!loading && !user) {
@@ -42,6 +66,27 @@ export default function MyPage() {
           {/* プロフィール */}
           <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-gray-200">
             <h2 className="text-2xl font-black text-gray-900 mb-6">プロフィール</h2>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-2xl font-black flex-shrink-0">
+                {profile?.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={profile.avatarUrl} alt="プロフィール画像" className="w-full h-full object-cover" />
+                ) : (
+                  profile?.name?.charAt(0)?.toUpperCase() ?? 'U'
+                )}
+              </div>
+              <div>
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="px-4 py-2 bg-orange-50 text-orange-700 rounded-full text-sm font-bold hover:bg-orange-100 transition-colors disabled:opacity-50"
+                >
+                  {uploading ? 'アップロード中…' : '画像を変更'}
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" onChange={onPickAvatar} className="hidden" />
+                <p className="text-[11px] text-gray-400 mt-1.5">JPG / PNG・正方形がおすすめ</p>
+              </div>
+            </div>
             <div className="space-y-4 text-gray-700">
               <div>
                 <p className="text-sm text-gray-600 font-bold mb-1">ユーザー名</p>

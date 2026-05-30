@@ -18,6 +18,7 @@ export type Profile = {
   email: string;
   role: UserRole;
   shopId?: string; // 出店者が担当するショップ(sellers.id)。0002適用後の profiles.shop_id
+  avatarUrl?: string; // プロフィール画像の公開URL（avatars バケット）
 };
 
 type AuthContextValue = {
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: data.email ?? '',
         role: data.role,
         shopId: data.shop_id ?? undefined,
+        avatarUrl: data.avatar_url ?? undefined,
       });
     } else {
       setProfile(null);

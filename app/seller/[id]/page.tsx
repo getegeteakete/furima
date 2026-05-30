@@ -11,8 +11,7 @@ import {
   UserIcon,
   HeartIcon,
 } from '../../components/Icons';
-import { getSellerById } from '../../lib/events';
-import { getSellerProducts } from '../../lib/supabaseStore';
+import { getSellerProducts, getShopById } from '../../lib/supabaseStore';
 import ProductThumb from '../../components/ProductThumb';
 import { useStoreData } from '../../lib/useStore';
 import { useFavorites } from '../../components/FavoritesContext';
@@ -20,7 +19,7 @@ import { useFavorites } from '../../components/FavoritesContext';
 export default function SellerProfilePage() {
   const params = useParams();
   const sellerId = params.id as string;
-  const seller = getSellerById(sellerId);
+  const seller = getShopById(sellerId);
   const productsGetter = useCallback(() => getSellerProducts(sellerId), [sellerId]);
   const [products] = useStoreData(productsGetter);
   const { toggleFollow, isFollowing } = useFavorites();

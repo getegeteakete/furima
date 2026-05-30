@@ -13,10 +13,11 @@
 --   4) 0005_products_image … products に image_url 列
 --   5) seed                … 初期データ（出店者/商品/イベント/取引サンプル）
 --   6) 0006_queue          … 整理券キュー（待機室の順番をサーバーで共有）
+--   7) 0007_profiles_avatar … profiles に avatar_url 列（プロフィール画像）
 --
 -- ※ 本番のRLS厳格化（0002_production_rls.sql）は別途・認証が安定してから実行。
--- ※ Storage バケット（chat-images / product-images）はSQLでは作れません。
---    Storage → New bucket → Public で2つ作成してください。
+-- ※ Storage バケット（chat-images / product-images / avatars）はSQLでは作れません。
+--    Storage → New bucket → Public で3つ作成してください。
 -- =============================================================
 
 
@@ -513,3 +514,15 @@ alter table public.queue_tickets enable row level security;
 drop policy if exists dev_all on public.queue_tickets;
 create policy dev_all on public.queue_tickets
   for all to anon, authenticated using (true) with check (true);
+
+-- ========== [7/7] 0007_profiles_avatar.sql ==========
+-- =============================================================
+-- フリマライブ  プロフィール画像URL  (0007_profiles_avatar.sql)
+-- =============================================================
+-- 元仕様(会員機能): プロフィール登録。アバター画像を Supabase Storage に保存し、
+-- その公開URLを profiles.avatar_url に保持する（null=既定アイコン表示）。
+-- 画像本体は public バケット 'avatars' に保存（要事前作成）。冪等。
+-- =============================================================
+
+alter table public.profiles
+  add column if not exists avatar_url text;

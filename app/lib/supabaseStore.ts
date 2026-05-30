@@ -16,7 +16,7 @@
 // =============================================================
 
 import { supabase } from './supabase/client';
-import { getSellerByProfileId, getSellerById, type Seller, type Product } from './events';
+import { getSellerById, PROFILE_TO_SHOP, type Seller, type Product } from './events';
 
 // 型は mockStore と共有（type-only import なので localStorage 実体は読み込まれない）
 import type {
@@ -68,6 +68,8 @@ const cache = {
   transactions: [] as Transaction[],
   products: {} as Record<string, Product[]>, // shopId(sellers.id) -> Product[]
   productsLoaded: false,
+  sellers: [] as Seller[], // DBのショップ情報（events.ts 静的マスタを上書き）
+  sellersLoaded: false,
   hydrated: false,
 };
 
@@ -223,6 +225,32 @@ export async function hydrateProducts(): Promise<void> {
   notify('products');
 }
 
+export async function hydrateSellers(): Promise<void> {
+  const { data, error } = await supabase.from('sellers').select('*');
+  if (error) {
+    persistError('hydrateSellers', error);
+    return;
+  }
+  cache.sellers = (data ?? []).map((s) => {
+    const r = s as Row;
+    const staticProducts = getSellerById(r.id as string)?.products ?? [];
+    return {
+      id: r.id as string,
+      name: r.name as string,
+      region: (r.region ?? '') as string,
+      category: (r.category ?? '') as string,
+      tags: (r.tags ?? []) as string[],
+      description: (r.description ?? '') as string,
+      icon: (r.icon ?? 'package') as Seller['icon'],
+      rating: Number(r.rating ?? 0),
+      followers: Number(r.followers ?? 0),
+      products: staticProducts, // 目玉は静的を保持（商品本体は products テーブルが正）
+    };
+  });
+  cache.sellersLoaded = true;
+  notify('sellers');
+}
+
 export async function hydrateAll(): Promise<void> {
   await Promise.all([
     hydrateEvents(),
@@ -231,6 +259,7 @@ export async function hydrateAll(): Promise<void> {
     hydrateSessions(),
     hydrateTransactions(),
     hydrateProducts(),
+    hydrateSellers(),
   ]);
   cache.hydrated = true;
   notify('all');
@@ -250,6 +279,7 @@ export function subscribeRealtime(): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'active_sessions' }, hydrateSessions)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, hydrateTransactions)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, hydrateProducts)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'sellers' }, hydrateSellers)
     .subscribe();
 
   return () => {
@@ -344,7 +374,7 @@ function toPublicStatus(s: AdminEventStatus): PublicEventStatus {
 function adminEventToPublic(e: AdminEvent): PublicEvent {
   const approvedSellers = e.sellerApplications
     .filter((a) => a.status === 'approved')
-    .map((a) => getSellerByProfileId(a.sellerId))
+    .map((a) => getShopByProfileId(a.sellerId))
     .filter((s): s is Seller => Boolean(s));
   return {
     id: e.id,
@@ -371,6 +401,33 @@ export function getPublicEvents(): PublicEvent[] {
 export function getPublicEventById(id: string): PublicEvent | undefined {
   const e = getAdminEventById(id);
   return e ? adminEventToPublic(e) : undefined;
+}
+
+// =============================================================
+// ショップ情報（sellers テーブル）
+// -------------------------------------------------------------
+// 表示は「DB優先・無ければ events.ts の静的マスタにフォールバック」。
+// DBにショップが投入済みなら name/region/tags/description/icon/rating/followers は
+// DBが正。products(目玉) は静的マスタを保持（商品本体は products テーブルが正）。
+// =============================================================
+
+// 指定ショップ（sellers.id）の情報を取得（DB優先・静的フォールバック）
+export function getShopById(id: string): Seller | undefined {
+  const fromDb = cache.sellers.find((s) => s.id === id);
+  const fromStatic = getSellerById(id);
+  if (!fromDb) return fromStatic;
+  // DBのショップ情報を静的に上書き。products は静的の目玉を維持。
+  return {
+    ...(fromStatic ?? ({} as Seller)),
+    ...fromDb,
+    products: fromStatic?.products ?? fromDb.products ?? [],
+  };
+}
+
+// 出店者アカウント(profile.id) からショップ情報を解決（DB優先）
+export function getShopByProfileId(profileId: string): Seller | undefined {
+  const shopId = PROFILE_TO_SHOP[profileId] ?? profileId;
+  return getShopById(shopId);
 }
 
 // =============================================================
@@ -462,6 +519,25 @@ export function updateProduct(
 // SOLD OUT を切り替え（購入者ページ/出店者管理から）
 export function setProductSoldOut(shopId: string, productNo: number, soldOut: boolean): void {
   updateProduct(shopId, productNo, { soldOut });
+}
+
+// 購入確定で在庫を1減らす。
+//  - 在庫管理なし(stock=null) または DB未登録 → 単品想定で即 SOLD OUT
+//  - 在庫管理あり → 1減算し、0になったら SOLD OUT
+export function decrementStock(
+  shopId: string,
+  productNo: number,
+): { soldOut: boolean; stock: number | null } {
+  const list = cache.products[shopId] ?? [];
+  const p = list.find((x) => x.id === productNo);
+  if (!p || p.stock == null) {
+    setProductSoldOut(shopId, productNo, true);
+    return { soldOut: true, stock: null };
+  }
+  const next = Math.max(0, p.stock - 1);
+  const soldOut = next === 0;
+  updateProduct(shopId, productNo, { stock: next, soldOut });
+  return { soldOut, stock: next };
 }
 
 // 商品を削除
@@ -1229,6 +1305,7 @@ export function subscribeToQueue(
 // =============================================================
 const CHAT_IMAGE_BUCKET = 'chat-images';
 const PRODUCT_IMAGE_BUCKET = 'product-images';
+const AVATAR_BUCKET = 'avatars';
 
 // dataURL を Blob に変換
 function dataUrlToBlob(dataUrl: string): { blob: Blob; ext: string } {
@@ -1280,6 +1357,27 @@ export async function uploadProductImage(
   shopId: string,
 ): Promise<string | null> {
   return uploadImage(dataUrl, PRODUCT_IMAGE_BUCKET, shopId);
+}
+
+// プロフィール画像（dataURL）を 'avatars' バケットへアップロードし公開URLを返す。
+// ⚠️ 事前にSupabaseで public バケット 'avatars' を作成しておくこと。
+export async function uploadAvatar(
+  dataUrl: string,
+  profileId: string,
+): Promise<string | null> {
+  return uploadImage(dataUrl, AVATAR_BUCKET, profileId);
+}
+
+// profiles.avatar_url を更新（アップロード済みの公開URLを保存）。
+export async function updateProfileAvatar(
+  profileId: string,
+  avatarUrl: string | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ avatar_url: avatarUrl })
+    .eq('id', profileId);
+  persistError('updateProfileAvatar', error);
 }
 
 // 複数 dataURL をまとめてアップロード。アップロード失敗分は dataURL のまま残す
