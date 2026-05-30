@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
+import { useState, useEffect, useRef, useCallback, type Dispatch, type SetStateAction } from 'react';
 import Link from 'next/link';
 import {
   ProductIcon,
@@ -20,6 +20,8 @@ import {
   createTransaction,
   CURRENT_MOCK_BUYER_ID,
   getPublicEventById,
+  getSellerProducts,
+  setProductSoldOut,
   fetchRoomMessages,
   sendChatMessage,
   subscribeToRoom,
@@ -27,6 +29,7 @@ import {
   type ChatSettings,
   type ChatRoomMessage,
 } from '../../../../lib/supabaseStore';
+import { useStoreData } from '../../../../lib/useStore';
 import { useAuth } from '../../../../components/AuthProvider';
 
 type Message = {
@@ -90,12 +93,13 @@ export default function ChatRoomPage() {
   const buyerId = profile?.id ?? CURRENT_MOCK_BUYER_ID;
   const buyerName = profile?.name ?? '山田太郎';
 
+  // 商品はDB優先（無ければ静的フォールバック）。Realtimeで SOLD OUT も同期。
+  const productsGetter = useCallback(() => getSellerProducts(sellerId), [sellerId]);
+  const [dbProducts] = useStoreData(productsGetter);
   useEffect(() => {
-    if (seller) {
-      setProducts(seller.products.map((p) => ({ ...p, soldOut: false })));
-      setSelectedProduct(seller.products[0]);
-    }
-  }, [seller]);
+    setProducts(dbProducts.map((p) => ({ ...p, soldOut: p.soldOut ?? false })));
+    setSelectedProduct((prev) => prev ?? dbProducts[0] ?? null);
+  }, [dbProducts]);
 
   // 重複なしで追記（Realtime のエコーと楽観追加の二重表示を防ぐ）
   const appendUnique = (
@@ -304,6 +308,8 @@ export default function ChatRoomPage() {
     setProducts((prev) =>
       prev.map((p) => (p.id === selectedProduct.id ? { ...p, soldOut: true } : p))
     );
+    // SOLD OUT をDBへ永続化（出店者・他購入者にもRealtimeで反映）
+    setProductSoldOut(seller.id, selectedProduct.id, true);
 
     // 購入確定の連絡を実チャットへ送信（出店者にリアルタイムで届く）
     const saved = await sendChatMessage({

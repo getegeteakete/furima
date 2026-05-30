@@ -13,6 +13,7 @@ import {
 } from '../components/Icons';
 import { useFavorites } from '../components/FavoritesContext';
 import { sellers } from '../lib/events';
+import { getSellerProducts } from '../lib/supabaseStore';
 
 export default function FavoritesPage() {
   const { followingSellers, toggleFollow } = useFavorites();
@@ -93,7 +94,7 @@ export default function FavoritesPage() {
                     <div className="mb-6">
                       <p className="text-xs font-bold text-orange-600 mb-3">目玉商品</p>
                       <div className="grid grid-cols-3 gap-2">
-                        {seller.products.map((product) => (
+                        {getSellerProducts(seller.id).map((product) => (
                           <div
                             key={product.id}
                             className="flex flex-col items-center text-center"

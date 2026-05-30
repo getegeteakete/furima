@@ -16,7 +16,7 @@
 // =============================================================
 
 import { supabase } from './supabase/client';
-import { getSellerByProfileId, type Seller } from './events';
+import { getSellerByProfileId, getSellerById, type Seller, type Product } from './events';
 
 // 型は mockStore と共有（type-only import なので localStorage 実体は読み込まれない）
 import type {
@@ -66,6 +66,8 @@ const cache = {
   chatSettings: { ...DEFAULT_CHAT_SETTINGS } as ChatSettings,
   activeSessions: [] as ActiveSession[],
   transactions: [] as Transaction[],
+  products: {} as Record<string, Product[]>, // shopId(sellers.id) -> Product[]
+  productsLoaded: false,
   hydrated: false,
 };
 
@@ -129,6 +131,18 @@ function rowToTransaction(t: Row): Transaction {
   };
 }
 
+function rowToProduct(p: Row): Product {
+  return {
+    id: p.product_no as number,
+    name: p.name,
+    price: p.price,
+    icon: p.icon ?? 'package',
+    description: p.description ?? '',
+    soldOut: p.sold_out ?? false,
+    stock: p.stock ?? null,
+  };
+}
+
 // =============================================================
 // ハイドレート（StoreProvider が起動時/購読時に呼ぶ）
 // =============================================================
@@ -189,6 +203,25 @@ export async function hydrateTransactions(): Promise<void> {
   notify('transactions');
 }
 
+export async function hydrateProducts(): Promise<void> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('product_no', { ascending: true });
+  if (error) {
+    persistError('hydrateProducts', error);
+    return;
+  }
+  const byShop: Record<string, Product[]> = {};
+  for (const r of data ?? []) {
+    const p = rowToProduct(r as Row);
+    (byShop[r.seller_id as string] ??= []).push(p);
+  }
+  cache.products = byShop;
+  cache.productsLoaded = true;
+  notify('products');
+}
+
 export async function hydrateAll(): Promise<void> {
   await Promise.all([
     hydrateEvents(),
@@ -196,6 +229,7 @@ export async function hydrateAll(): Promise<void> {
     hydrateChatSettings(),
     hydrateSessions(),
     hydrateTransactions(),
+    hydrateProducts(),
   ]);
   cache.hydrated = true;
   notify('all');
@@ -214,6 +248,7 @@ export function subscribeRealtime(): () => void {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_settings' }, hydrateChatSettings)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'active_sessions' }, hydrateSessions)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, hydrateTransactions)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, hydrateProducts)
     .subscribe();
 
   return () => {
@@ -335,6 +370,107 @@ export function getPublicEvents(): PublicEvent[] {
 export function getPublicEventById(id: string): PublicEvent | undefined {
   const e = getAdminEventById(id);
   return e ? adminEventToPublic(e) : undefined;
+}
+
+// =============================================================
+// 商品（products テーブル）
+// -------------------------------------------------------------
+// 表示は「DB優先・無ければ events.ts の静的マスタにフォールバック」。
+// これにより products 未投入でも従来通り表示され、投入済みならDBが正になる。
+// shopId は sellers.id（例 'mina-craft'）。
+// =============================================================
+
+// 指定ショップの商品一覧（DB優先・静的フォールバック）
+export function getSellerProducts(shopId: string): Product[] {
+  const fromDb = cache.products[shopId];
+  if (fromDb && fromDb.length > 0) return fromDb;
+  // フォールバック: 静的マスタ（soldOut/stock を既定値で補完）
+  const fallback = getSellerById(shopId)?.products ?? [];
+  return fallback.map((p) => ({ soldOut: false, stock: null, ...p }));
+}
+
+// 目玉商品（開催前に出す先頭5点）
+export function getSellerPickupProducts(shopId: string, count = 5): Product[] {
+  return getSellerProducts(shopId).slice(0, count);
+}
+
+// 新規商品を登録。product_no はショップ内の最大+1を自動採番。
+export function createProduct(
+  shopId: string,
+  data: { name: string; price: number; icon: Product['icon']; description?: string; stock?: number | null },
+): Product {
+  const current = cache.products[shopId] ?? [];
+  const nextNo = current.reduce((m, p) => Math.max(m, p.id), 0) + 1;
+  const product: Product = {
+    id: nextNo,
+    name: data.name,
+    price: data.price,
+    icon: data.icon,
+    description: data.description ?? '',
+    soldOut: false,
+    stock: data.stock ?? null,
+  };
+  cache.products = { ...cache.products, [shopId]: [...current, product] };
+  notify('products');
+  supabase
+    .from('products')
+    .insert({
+      seller_id: shopId,
+      product_no: nextNo,
+      name: product.name,
+      price: product.price,
+      icon: product.icon,
+      description: product.description,
+      sold_out: false,
+      stock: product.stock,
+    })
+    .then(({ error }) => persistError('createProduct', error));
+  return product;
+}
+
+// 商品を更新（部分更新）
+export function updateProduct(
+  shopId: string,
+  productNo: number,
+  updates: Partial<Omit<Product, 'id'>>,
+): void {
+  const current = cache.products[shopId] ?? [];
+  cache.products = {
+    ...cache.products,
+    [shopId]: current.map((p) => (p.id === productNo ? { ...p, ...updates } : p)),
+  };
+  notify('products');
+  const patch: Row = {};
+  if (updates.name !== undefined) patch.name = updates.name;
+  if (updates.price !== undefined) patch.price = updates.price;
+  if (updates.icon !== undefined) patch.icon = updates.icon;
+  if (updates.description !== undefined) patch.description = updates.description;
+  if (updates.soldOut !== undefined) patch.sold_out = updates.soldOut;
+  if (updates.stock !== undefined) patch.stock = updates.stock;
+  supabase
+    .from('products')
+    .update(patch)
+    .eq('seller_id', shopId)
+    .eq('product_no', productNo)
+    .then(({ error }) => persistError('updateProduct', error));
+}
+
+// SOLD OUT を切り替え（購入者ページ/出店者管理から）
+export function setProductSoldOut(shopId: string, productNo: number, soldOut: boolean): void {
+  updateProduct(shopId, productNo, { soldOut });
+}
+
+// 商品を削除
+export function deleteProduct(shopId: string, productNo: number): void {
+  const current = cache.products[shopId] ?? [];
+  cache.products = { ...cache.products, [shopId]: current.filter((p) => p.id !== productNo) };
+  notify('products');
+  supabase
+    .from('products')
+    .delete()
+    .eq('seller_id', shopId)
+    .eq('product_no', productNo)
+    .then(({ error }) => persistError('deleteProduct', error));
 }
 
 // =============================================================

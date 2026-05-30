@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../../components/Header';
@@ -11,12 +12,16 @@ import {
   HeartIcon,
 } from '../../components/Icons';
 import { getSellerById } from '../../lib/events';
+import { getSellerProducts } from '../../lib/supabaseStore';
+import { useStoreData } from '../../lib/useStore';
 import { useFavorites } from '../../components/FavoritesContext';
 
 export default function SellerProfilePage() {
   const params = useParams();
   const sellerId = params.id as string;
   const seller = getSellerById(sellerId);
+  const productsGetter = useCallback(() => getSellerProducts(sellerId), [sellerId]);
+  const [products] = useStoreData(productsGetter);
   const { toggleFollow, isFollowing } = useFavorites();
 
   if (!seller) {
@@ -115,7 +120,7 @@ export default function SellerProfilePage() {
 
           <h2 className="text-2xl font-black text-gray-900 mb-6">目玉商品（5点）</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {seller.products.map((product) => (
+            {products.map((product) => (
               <div
                 key={product.id}
                 className="bg-white border-2 border-gray-200 rounded-2xl p-4 text-center hover:border-orange-300 transition-all"

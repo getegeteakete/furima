@@ -17,6 +17,7 @@ export type Profile = {
   name: string;
   email: string;
   role: UserRole;
+  shopId?: string; // 出店者が担当するショップ(sellers.id)。0002適用後の profiles.shop_id
 };
 
 type AuthContextValue = {
@@ -45,7 +46,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = useCallback(async (uid: string) => {
     const { data } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle();
     if (data) {
-      setProfile({ id: data.id, name: data.name, email: data.email ?? '', role: data.role });
+      setProfile({
+        id: data.id,
+        name: data.name,
+        email: data.email ?? '',
+        role: data.role,
+        shopId: data.shop_id ?? undefined,
+      });
     } else {
       setProfile(null);
     }

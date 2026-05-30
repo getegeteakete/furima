@@ -22,8 +22,18 @@ import {
   SendIcon,
 } from '../components/Icons';
 import type { ProductIconType } from '../components/Icons';
-import { getSellerTransactions, getRemainingDays } from '../lib/supabaseStore';
+import {
+  getSellerTransactions,
+  getRemainingDays,
+  getSellerProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  setProductSoldOut,
+} from '../lib/supabaseStore';
+import { PROFILE_TO_SHOP, type Product } from '../lib/events';
 import { useStoreData } from '../lib/useStore';
+import { useAuth } from '../components/AuthProvider';
 
 type Tab = 'overview' | 'products' | 'events' | 'transactions' | 'analytics';
 
@@ -35,13 +45,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'analytics', label: '売上分析' },
 ];
 
-const PRODUCTS: { id: number; name: string; price: number; stock: number; sold: number; icon: ProductIconType }[] = [
-  { id: 1, name: 'レジン樹脂ピアス', price: 2800, stock: 5, sold: 12, icon: 'jewelry' },
-  { id: 2, name: '天然石ネックレス', price: 4500, stock: 3, sold: 8, icon: 'necklace' },
-  { id: 3, name: 'ハンドメイドリング', price: 3200, stock: 7, sold: 15, icon: 'ring' },
-  { id: 4, name: 'ガラスチャーム', price: 1800, stock: 10, sold: 6, icon: 'sparkles' },
-];
-
 const UPCOMING_EVENTS = [
   { id: 1, date: '今日', time: '20:00-22:00', reserved: 7, max: 10, status: 'live' },
   { id: 2, date: '明日', time: '20:00-22:00', reserved: 5, max: 10, status: 'upcoming' },
@@ -50,6 +53,9 @@ const UPCOMING_EVENTS = [
 
 export default function SellerPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  // 担当ショップ: profiles.shop_id（本番）→ デモ対応表 → 既定の順に解決
+  const { profile } = useAuth();
+  const shopId = profile?.shopId ?? PROFILE_TO_SHOP[profile?.id ?? ''] ?? 'mina-craft';
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -109,7 +115,7 @@ export default function SellerPage() {
             <div className="space-y-8 lg:space-y-10">
               {/* ライブ接客コンソールへの導線 */}
               <Link
-                href="/event/evt-001/seller/mina-craft/console"
+                href={`/event/evt-001/seller/${shopId}/console`}
                 className="block bg-gradient-to-r from-orange-500 to-orange-600 rounded-3xl p-6 sm:p-7 text-white hover:shadow-lg transition-all active:scale-[0.99]"
               >
                 <div className="flex items-center justify-between gap-4">
@@ -209,34 +215,7 @@ export default function SellerPage() {
           )}
 
           {/* Products Tab */}
-          {activeTab === 'products' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-black text-gray-900">商品一覧 ({PRODUCTS.length}点)</h2>
-                <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white rounded-full text-sm font-bold hover:bg-orange-600 transition-all">
-                  <PlusIcon size={16} stroke={2.5} />
-                  新規追加
-                </button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {PRODUCTS.map((product) => (
-                  <div key={product.id} className="bg-white rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden hover:shadow-md transition-all">
-                    <div className="aspect-square bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-orange-700">
-                      <ProductIcon type={product.icon} size={56} stroke={1.5} />
-                    </div>
-                    <div className="p-5">
-                      <p className="text-sm font-black text-gray-900 mb-2 truncate">{product.name}</p>
-                      <p className="text-xl font-black text-orange-600 mb-4">¥{product.price.toLocaleString()}</p>
-                      <div className="flex items-center justify-between text-xs pt-3 border-t border-gray-100">
-                        <span className="text-gray-500">在庫: <span className="font-bold text-gray-900">{product.stock}</span></span>
-                        <span className="text-gray-500">販売: <span className="font-bold text-gray-900">{product.sold}</span></span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {activeTab === 'products' && <ProductManager shopId={shopId} />}
 
           {/* Events Tab */}
           {activeTab === 'events' && (
@@ -254,7 +233,7 @@ export default function SellerPage() {
           )}
 
           {/* Transactions Tab - 取引履歴 */}
-          {activeTab === 'transactions' && <SellerTransactions />}
+          {activeTab === 'transactions' && <SellerTransactions shopId={shopId} />}
 
           {/* Analytics Tab */}
           {activeTab === 'analytics' && (
@@ -288,8 +267,8 @@ export default function SellerPage() {
 }
 
 // 取引履歴（出店者視点）
-function SellerTransactions() {
-  const getter = useCallback(() => getSellerTransactions('mina-craft'), []);
+function SellerTransactions({ shopId }: { shopId: string }) {
+  const getter = useCallback(() => getSellerTransactions(shopId), [shopId]);
   const [transactions] = useStoreData(getter);
 
   return (
@@ -352,6 +331,243 @@ function SellerTransactions() {
               </Link>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================
+// 商品管理（出店者）— products テーブルにCRUD
+// -------------------------------------------------------------
+// 元仕様(出店者機能): 商品登録 / 商品説明 / 在庫管理 / SOLD OUT表示。
+// DB優先（getSellerProducts）で表示し、追加/編集/削除/SOLD切替を永続化。
+// =============================================================
+const ICON_OPTIONS: ProductIconType[] = [
+  'diamond', 'jewelry', 'ring', 'necklace', 'shirt', 'bag', 'wallet',
+  'shoe', 'food', 'electronics', 'handmade', 'sparkles', 'package', 'store',
+];
+
+type ProductForm = {
+  name: string;
+  price: string;
+  icon: ProductIconType;
+  description: string;
+  stock: string; // 空=在庫管理しない
+};
+
+const EMPTY_FORM: ProductForm = { name: '', price: '', icon: 'package', description: '', stock: '' };
+
+function ProductManager({ shopId }: { shopId: string }) {
+  const getter = useCallback(() => getSellerProducts(shopId), [shopId]);
+  const [products] = useStoreData(getter);
+  // editing: null=フォーム閉, 'new'=新規, number=該当product_noを編集
+  const [editing, setEditing] = useState<'new' | number | null>(null);
+  const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
+  const [error, setError] = useState('');
+
+  const openNew = () => {
+    setForm(EMPTY_FORM);
+    setError('');
+    setEditing('new');
+  };
+
+  const openEdit = (p: Product) => {
+    setForm({
+      name: p.name,
+      price: String(p.price),
+      icon: p.icon,
+      description: p.description ?? '',
+      stock: p.stock == null ? '' : String(p.stock),
+    });
+    setError('');
+    setEditing(p.id);
+  };
+
+  const closeForm = () => {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setError('');
+  };
+
+  const save = () => {
+    const name = form.name.trim();
+    const price = Number(form.price);
+    if (!name) return setError('商品名を入力してください');
+    if (!Number.isFinite(price) || price < 0) return setError('価格は0以上の数値で入力してください');
+    const stock = form.stock.trim() === '' ? null : Number(form.stock);
+    if (stock != null && (!Number.isInteger(stock) || stock < 0)) {
+      return setError('在庫は0以上の整数、または空欄（管理しない）にしてください');
+    }
+    if (editing === 'new') {
+      createProduct(shopId, { name, price, icon: form.icon, description: form.description.trim(), stock });
+    } else if (typeof editing === 'number') {
+      updateProduct(shopId, editing, {
+        name,
+        price,
+        icon: form.icon,
+        description: form.description.trim(),
+        stock,
+      });
+    }
+    closeForm();
+  };
+
+  const remove = (p: Product) => {
+    if (typeof window !== 'undefined' && !window.confirm(`「${p.name}」を削除しますか？`)) return;
+    deleteProduct(shopId, p.id);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-lg font-black text-gray-900">商品一覧 ({products.length}点)</h2>
+        <button
+          onClick={openNew}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white rounded-full text-sm font-bold hover:bg-orange-600 transition-all"
+        >
+          <PlusIcon size={16} stroke={2.5} />
+          新規追加
+        </button>
+      </div>
+
+      {/* 追加/編集フォーム */}
+      {editing !== null && (
+        <div className="bg-white rounded-2xl border border-orange-200 p-5 sm:p-6 shadow-sm space-y-4">
+          <p className="text-sm font-black text-gray-900">
+            {editing === 'new' ? '新しい商品を追加' : '商品を編集'}
+          </p>
+          {error && <p className="text-xs font-bold text-red-600">{error}</p>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-xs font-bold text-gray-600">商品名</span>
+              <input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-400"
+                placeholder="例: レジン樹脂ピアス"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-bold text-gray-600">価格 (円)</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-400"
+                placeholder="2800"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-bold text-gray-600">在庫数（空欄=管理しない）</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={form.stock}
+                onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-400"
+                placeholder="（空欄可）"
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-bold text-gray-600">アイコン</span>
+              <select
+                value={form.icon}
+                onChange={(e) => setForm({ ...form, icon: e.target.value as ProductIconType })}
+                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:border-orange-400"
+              >
+                {ICON_OPTIONS.map((ic) => (
+                  <option key={ic} value={ic}>{ic}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className="block">
+            <span className="text-xs font-bold text-gray-600">商品説明</span>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              rows={2}
+              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-400"
+              placeholder="透明感が美しいレジンの一点物"
+            />
+          </label>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={save}
+              className="px-5 py-2.5 bg-orange-500 text-white rounded-full text-sm font-bold hover:bg-orange-600 transition-all"
+            >
+              保存
+            </button>
+            <button
+              onClick={closeForm}
+              className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-bold hover:bg-gray-200 transition-all"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 商品グリッド */}
+      {products.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center text-sm text-gray-500">
+          商品がまだありません。「新規追加」から登録してください。
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {products.map((product) => (
+            <div key={product.id} className="bg-white rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden hover:shadow-md transition-all">
+              <div className="relative aspect-square bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-orange-700">
+                <ProductIcon type={product.icon} size={56} stroke={1.5} />
+                {product.soldOut && (
+                  <span className="absolute top-2 left-2 px-2 py-1 bg-gray-900/80 text-white text-xs font-black rounded">
+                    SOLD OUT
+                  </span>
+                )}
+              </div>
+              <div className="p-5">
+                <p className="text-sm font-black text-gray-900 mb-1 truncate">{product.name}</p>
+                <p className="text-xl font-black text-orange-600 mb-2">¥{product.price.toLocaleString()}</p>
+                {product.description && (
+                  <p className="text-xs text-gray-500 mb-3 line-clamp-2">{product.description}</p>
+                )}
+                <div className="flex items-center justify-between text-xs pt-3 border-t border-gray-100 mb-3">
+                  <span className="text-gray-500">
+                    在庫: <span className="font-bold text-gray-900">{product.stock == null ? '管理なし' : product.stock}</span>
+                  </span>
+                  <span className={`font-bold ${product.soldOut ? 'text-gray-400' : 'text-green-600'}`}>
+                    {product.soldOut ? '販売停止中' : '販売中'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openEdit(product)}
+                    className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-200 transition-all"
+                  >
+                    編集
+                  </button>
+                  <button
+                    onClick={() => setProductSoldOut(shopId, product.id, !product.soldOut)}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                      product.soldOut
+                        ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                        : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
+                    }`}
+                  >
+                    {product.soldOut ? '再販する' : 'SOLD OUT'}
+                  </button>
+                  <button
+                    onClick={() => remove(product)}
+                    className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold hover:bg-red-100 transition-all"
+                  >
+                    削除
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

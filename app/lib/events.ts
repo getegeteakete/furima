@@ -6,6 +6,8 @@ export type Product = {
   price: number;
   icon: ProductIconType;
   description: string;
+  soldOut?: boolean; // SOLD OUT表示（DB: sold_out）
+  stock?: number | null; // 在庫数（null=在庫管理しない）
 };
 
 export type Seller = {

@@ -13,7 +13,7 @@ import {
   CalendarIcon,
   StarIcon,
 } from '../../components/Icons';
-import { getPublicEventById, getBuyerActiveSession, CURRENT_MOCK_BUYER_ID } from '../../lib/supabaseStore';
+import { getPublicEventById, getBuyerActiveSession, getSellerPickupProducts, CURRENT_MOCK_BUYER_ID } from '../../lib/supabaseStore';
 import { useStoreData } from '../../lib/useStore';
 
 export default function EventDetailPage() {
@@ -212,7 +212,7 @@ export default function EventDetailPage() {
                     </p>
                     {/* スマホ: 横スクロール / PC: 5列グリッド */}
                     <div className="flex sm:grid sm:grid-cols-5 gap-3 overflow-x-auto sm:overflow-visible pb-2 sm:pb-0 scrollbar-hide -mx-1 px-1">
-                      {seller.products.slice(0, 5).map((product) => (
+                      {getSellerPickupProducts(seller.id, 5).map((product) => (
                         <div
                           key={product.id}
                           className="flex flex-col items-center text-center hover:scale-105 transition-transform cursor-pointer flex-shrink-0 w-20 sm:w-auto"
