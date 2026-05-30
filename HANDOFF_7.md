@@ -123,13 +123,23 @@ Supabase: 接続済み（URL: https://cccspbtjseallretqguz.supabase.co）
 
 ```
 1. LINE通知 / LINE・Googleログイン … ★ユーザー指定でスコープ外★（当面やらない）
-2. 出店者→イベント参加申請のUI導線（applyAsSeller は store にあるが UI 入口が無い）
-   → 現状 /events から「このイベントに出店申請」する画面が未配線。
-3. アクセス数（PV）解析（要トラッキング基盤・現状なし）
-4. 出店料の振込先（口座/PayPay ID）の具体表示（金額/方式選択+申告のみ実装済）
-5. 整理券: callNextInQueue の前 serving done と endServingTicket の役割整理
+2. アクセス数（PV）解析（要トラッキング基盤・現状なし）
+3. 出店料の振込先（口座/PayPay ID）の具体表示（金額/方式選択+申告のみ実装済）
+4. 整理券: callNextInQueue の前 serving done と endServingTicket の役割整理
    （#7 で接客終了ボタンを追加済。運用で重複しないか本番で確認）
 ```
+
+> ✅ #7 後半で「出店者→イベント参加申請のUI導線」を実装済み（下記参照）。
+
+### 5. 出店者→イベント参加申請のUI導線（#7 後半で実装）
+- `app/event/[id]/page.tsx` に、出店者ロールでログイン中 & 開催前(upcoming)の
+  ときだけ「出店を申請する」CTA を追加。
+- 状態に応じて出し分け: 未申請=申請ボタン / pending=承認待ち / approved=承認済み /
+  rejected=非承認 / 定員到達=募集終了。
+- データ層に `getSellerApplicationStatus(eventId, sellerId)` を追加
+  （申請status + 定員full を返す。`applyAsSeller` は既存を使用）。
+- ⚠️ 申請の seller_id は profiles.id 系（例 'seller-mina'）。本番RLS apps_insert_self
+  が seller_id = auth.uid() を要求するため、CTA は profile.id で申請する。
 
 ---
 

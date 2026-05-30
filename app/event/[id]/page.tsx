@@ -13,9 +13,10 @@ import {
   CalendarIcon,
   StarIcon,
 } from '../../components/Icons';
-import { getPublicEventById, getBuyerActiveSession, getSellerPickupProducts, CURRENT_MOCK_BUYER_ID } from '../../lib/supabaseStore';
+import { getPublicEventById, getBuyerActiveSession, getSellerPickupProducts, applyAsSeller, getSellerApplicationStatus, CURRENT_MOCK_BUYER_ID } from '../../lib/supabaseStore';
 import { useStoreData } from '../../lib/useStore';
 import ProductThumb from '../../components/ProductThumb';
+import { useAuth } from '../../components/AuthProvider';
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -25,6 +26,29 @@ export default function EventDetailPage() {
   const [event] = useStoreData(eventGetter);
   const [countdownTime, setCountdownTime] = useState<number | null>(null);
   const [activeSellerId, setActiveSellerId] = useState<string | null>(null); // ⑥ 接客中の出店者
+
+  // 出店者の参加申請（出店者ロールでログイン中のみ表示）
+  const { profile } = useAuth();
+  const isSeller = profile?.role === 'seller';
+  const [applyMsg, setApplyMsg] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
+  // 申請状況（store更新で再評価される。useStoreData で購読）
+  const applyStatusGetter = useCallback(
+    () =>
+      isSeller && profile
+        ? getSellerApplicationStatus(eventId, profile.id)
+        : { status: 'none' as const, full: false },
+    [eventId, isSeller, profile],
+  );
+  const [applyStatus] = useStoreData(applyStatusGetter);
+
+  const handleApply = async () => {
+    if (!profile || applying) return;
+    setApplying(true);
+    const res = applyAsSeller(eventId, profile.id, profile.name);
+    setApplyMsg(res.message);
+    setApplying(false);
+  };
 
   // ⑥ 進行中セッションを検知
   useEffect(() => {
@@ -148,6 +172,48 @@ export default function EventDetailPage() {
               🏪 出店者: <span className="text-2xl text-orange-600">{event.sellers.length}</span> 店舗
             </p>
           </div>
+
+          {/* 出店者向け: このイベントへの参加申請（出店者ロール & 開催前のみ） */}
+          {isSeller && event.status === 'upcoming' && (
+            <div className="mt-4 p-4 border-2 border-dashed border-orange-200 rounded-2xl bg-white">
+              {applyStatus.status === 'approved' ? (
+                <p className="text-sm font-bold text-green-700">
+                  ✓ このイベントへの出店が承認されています
+                </p>
+              ) : applyStatus.status === 'pending' ? (
+                <p className="text-sm font-bold text-orange-700">
+                  ⏳ 出店申請を送信済みです（運営の承認待ち）
+                </p>
+              ) : applyStatus.status === 'rejected' ? (
+                <p className="text-sm font-bold text-gray-500">
+                  この出店申請は承認されませんでした
+                </p>
+              ) : applyStatus.full ? (
+                <p className="text-sm font-bold text-gray-500">
+                  出店者の募集は定員に達しました
+                </p>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-900">このイベントに出店しませんか？</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      申請後、運営の承認で出店が確定します（出店料 ¥1,200）
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleApply}
+                    disabled={applying}
+                    className="px-5 py-2.5 bg-orange-500 text-white rounded-full text-sm font-black whitespace-nowrap hover:bg-orange-600 transition-all disabled:opacity-50 active:scale-95"
+                  >
+                    {applying ? '送信中...' : '出店を申請する'}
+                  </button>
+                </div>
+              )}
+              {applyMsg && applyStatus.status === 'none' && (
+                <p className="text-xs text-orange-600 mt-2">{applyMsg}</p>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

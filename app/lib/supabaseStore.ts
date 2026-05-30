@@ -797,6 +797,21 @@ export function applyAsSeller(
   return { ok: true, message: '参加申請を送信しました（承認待ち）' };
 }
 
+// 出店者(sellerId = profiles.id)の、指定イベントへの申請状況を返す。
+// 'none' = 未申請 / それ以外は申請の status（pending / approved / rejected）。
+// 募集が定員に達しているか(full)も併せて返し、UIの出し分けに使う。
+export function getSellerApplicationStatus(
+  eventId: string,
+  sellerId: string,
+): { status: 'none' | 'pending' | 'approved' | 'rejected'; full: boolean } {
+  const event = getAdminEventById(eventId);
+  if (!event) return { status: 'none', full: false };
+  const approvedCount = event.sellerApplications.filter((a) => a.status === 'approved').length;
+  const full = approvedCount >= event.maxSellers;
+  const mine = event.sellerApplications.find((a) => a.sellerId === sellerId);
+  return { status: mine?.status ?? 'none', full };
+}
+
 export function reserveAsBuyer(eventId: string, buyerId: string): { ok: boolean; message: string } {
   const event = getAdminEventById(eventId);
   if (!event) return { ok: false, message: 'イベントが見つかりません' };
