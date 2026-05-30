@@ -183,6 +183,8 @@ export async function hydrateChatSettings(): Promise<void> {
       maxImagesPerMessage: data.max_images_per_message,
       autoCloseOnTimeout: data.auto_close_on_timeout,
       allowReRequest: data.allow_re_request,
+      feeBankInfo: data.fee_bank_info ?? '',
+      feePaypayId: data.fee_paypay_id ?? '',
     };
   }
   notify('chatSettings');
@@ -850,6 +852,8 @@ export function updateChatSettings(updates: Partial<ChatSettings>): void {
   if (updates.maxImagesPerMessage !== undefined) patch.max_images_per_message = updates.maxImagesPerMessage;
   if (updates.autoCloseOnTimeout !== undefined) patch.auto_close_on_timeout = updates.autoCloseOnTimeout;
   if (updates.allowReRequest !== undefined) patch.allow_re_request = updates.allowReRequest;
+  if (updates.feeBankInfo !== undefined) patch.fee_bank_info = updates.feeBankInfo;
+  if (updates.feePaypayId !== undefined) patch.fee_paypay_id = updates.feePaypayId;
   supabase
     .from('chat_settings')
     .update(patch)

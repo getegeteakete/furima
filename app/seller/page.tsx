@@ -34,6 +34,7 @@ import {
   getAdminEvents,
   submitSellerFee,
   SELLER_FEE_YEN,
+  getChatSettings,
 } from '../lib/supabaseStore';
 import { PROFILE_TO_SHOP, type Product } from '../lib/events';
 import { useStoreData } from '../lib/useStore';
@@ -768,6 +769,7 @@ function SellerFeePanel({ profileId }: { profileId: string }) {
     [profileId],
   );
   const [events] = useStoreData(getter);
+  const [settings] = useStoreData(getChatSettings);
   const [method, setMethod] = useState<Record<string, 'bank' | 'paypay'>>({});
 
   if (!profileId) {
@@ -816,7 +818,7 @@ function SellerFeePanel({ profileId }: { profileId: string }) {
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="space-y-3">
                 <div className="flex gap-2">
                   {(['bank', 'paypay'] as const).map((opt) => (
                     <button
@@ -830,6 +832,25 @@ function SellerFeePanel({ profileId }: { profileId: string }) {
                     </button>
                   ))}
                 </div>
+
+                {/* 選択した方式の振込先（運営がチャット設定で登録） */}
+                <div className="bg-gray-50 rounded-xl p-3 text-sm">
+                  <p className="text-xs font-bold text-gray-500 mb-1">
+                    お振込先（{m === 'paypay' ? 'PayPay' : '銀行振込'}）
+                  </p>
+                  {m === 'bank' ? (
+                    settings.feeBankInfo ? (
+                      <p className="text-gray-800 whitespace-pre-wrap break-words">{settings.feeBankInfo}</p>
+                    ) : (
+                      <p className="text-gray-400">振込先が未登録です。運営にお問い合わせください。</p>
+                    )
+                  ) : settings.feePaypayId ? (
+                    <p className="text-gray-800 break-words">{settings.feePaypayId}</p>
+                  ) : (
+                    <p className="text-gray-400">送金先が未登録です。運営にお問い合わせください。</p>
+                  )}
+                </div>
+
                 <button
                   onClick={() => submitSellerFee(e.id, profileId, m)}
                   className="px-5 py-2.5 bg-orange-500 text-white rounded-full text-sm font-black hover:bg-orange-600 transition-all active:scale-95"

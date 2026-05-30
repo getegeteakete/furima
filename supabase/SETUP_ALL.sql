@@ -148,8 +148,14 @@ create table if not exists public.chat_settings (
   max_images_per_message   int not null default 5,
   auto_close_on_timeout    boolean not null default true,
   allow_re_request         boolean not null default true,
+  fee_bank_info            text default '',
+  fee_paypay_id            text default '',
   updated_at               timestamptz not null default now()
 );
+-- 既存環境向け（テーブルが既にある場合の列追加・冪等）
+alter table public.chat_settings
+  add column if not exists fee_bank_info  text default '',
+  add column if not exists fee_paypay_id  text default '';
 drop trigger if exists trg_chat_settings_updated on public.chat_settings;
 create trigger trg_chat_settings_updated before update on public.chat_settings
   for each row execute function public.set_updated_at();

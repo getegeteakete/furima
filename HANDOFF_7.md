@@ -81,6 +81,9 @@ Supabase: 接続済み（URL: https://cccspbtjseallretqguz.supabase.co）
 
 ### ① Supabase SQL Editor で `supabase/SETUP_ALL.sql` を Run（最重要・冪等）
 - 0001〜0008 + seed を統合。貼り付けて Run するだけ（何度でも安全）。
+- ※ 出店料の振込先列(fee_bank_info / fee_paypay_id)は SETUP_ALL に反映済み。
+  既に SETUP_ALL を流した本番に追加だけしたい場合は
+  `supabase/migrations/0010_chat_settings_fee_payout.sql` を Run（冪等）。
 
 ### ② Supabase Storage に public バケットを3つ作成
 - `chat-images` / `product-images` / `avatars`（New bucket → **Public**）。
@@ -124,12 +127,22 @@ Supabase: 接続済み（URL: https://cccspbtjseallretqguz.supabase.co）
 ```
 1. LINE通知 / LINE・Googleログイン … ★ユーザー指定でスコープ外★（当面やらない）
 2. アクセス数（PV）解析（要トラッキング基盤・現状なし）
-3. 出店料の振込先（口座/PayPay ID）の具体表示（金額/方式選択+申告のみ実装済）
-4. 整理券: callNextInQueue の前 serving done と endServingTicket の役割整理
+3. 整理券: callNextInQueue の前 serving done と endServingTicket の役割整理
    （#7 で接客終了ボタンを追加済。運用で重複しないか本番で確認）
 ```
 
-> ✅ #7 後半で「出店者→イベント参加申請のUI導線」を実装済み（下記参照）。
+> ✅ #7 で「出店者→参加申請UI導線」「出店料の振込先表示」を実装済み（下記参照）。
+
+### 6. 出店料の振込先表示（#7 で実装）
+- 運営がチャット設定（/admin/chat-settings）で **出店料(¥1,200)の振込先**
+  （銀行振込先テキスト / PayPay送金先）を登録できるようにした。
+- 出店者の支払い申告パネル（/seller 「イベント管理」タブ）で、選択中の支払い方式
+  （銀行 or PayPay）に応じた振込先を表示してから申告できる。
+- データ層: `ChatSettings` に `feeBankInfo` / `feePaypayId` を追加。
+  hydrate / updateChatSettings(patch) に列マッピングを追加。
+- DB: `supabase/migrations/0010_chat_settings_fee_payout.sql`（新規・冪等）で
+  chat_settings に fee_bank_info / fee_paypay_id 列を追加。SETUP_ALL.sql にも反映済み。
+- ⚠️ **商品代金は引き続き運営が持たない**。本機能が保持するのは出店料の受取先のみ。
 
 ### 5. 出店者→イベント参加申請のUI導線（#7 後半で実装）
 - `app/event/[id]/page.tsx` に、出店者ロールでログイン中 & 開催前(upcoming)の

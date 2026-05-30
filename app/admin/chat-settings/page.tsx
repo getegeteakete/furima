@@ -2,8 +2,8 @@
 
 import { getChatSettings, updateChatSettings } from '../../lib/supabaseStore';
 import { useStoreData } from '../../lib/useStore';
-import { ClockIcon, CheckIcon } from '../../components/Icons';
-import { useState } from 'react';
+import { ClockIcon, CheckIcon, WalletIcon } from '../../components/Icons';
+import { useState, useEffect } from 'react';
 
 export default function ChatSettingsPage() {
   const [settings] = useStoreData(getChatSettings);
@@ -14,6 +14,17 @@ export default function ChatSettingsPage() {
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
+
+  // 振込先はテキスト入力のため、打鍵ごとの保存を避けてローカルにバッファし「保存」で確定。
+  const [bankInfo, setBankInfo] = useState('');
+  const [paypayId, setPaypayId] = useState('');
+  useEffect(() => {
+    setBankInfo(settings.feeBankInfo ?? '');
+    setPaypayId(settings.feePaypayId ?? '');
+  }, [settings.feeBankInfo, settings.feePaypayId]);
+  const payoutDirty =
+    bankInfo !== (settings.feeBankInfo ?? '') || paypayId !== (settings.feePaypayId ?? '');
+  const savePayout = () => update({ feeBankInfo: bankInfo.trim(), feePaypayId: paypayId.trim() });
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -113,10 +124,57 @@ export default function ChatSettingsPage() {
         </div>
       </div>
 
+      {/* 出店料の振込先 */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-2">
+          <WalletIcon size={20} stroke={2} className="text-orange-500" />
+          <h2 className="font-black text-gray-900">出店料の振込先</h2>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">
+          出店料 ¥1,200 の受取先です。出店者の支払い申告画面に表示されます。
+          <span className="text-gray-400">（商品代金は運営が持たず、出店者⇔購入者の直接取引です）</span>
+        </p>
+
+        <div className="space-y-5">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">
+              銀行振込先
+            </label>
+            <textarea
+              value={bankInfo}
+              onChange={(e) => setBankInfo(e.target.value)}
+              rows={3}
+              placeholder={'例) ○○銀行 △△支店 普通 1234567\n名義: フリマライブ ウンエイ'}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm outline-none focus:border-orange-400 resize-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">
+              PayPay 送金先（PayPay ID など）
+            </label>
+            <input
+              type="text"
+              value={paypayId}
+              onChange={(e) => setPaypayId(e.target.value)}
+              placeholder="例) @furima-unei"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm outline-none focus:border-orange-400"
+            />
+          </div>
+          <button
+            onClick={savePayout}
+            disabled={!payoutDirty}
+            className="px-5 py-2.5 bg-orange-500 text-white rounded-full text-sm font-black hover:bg-orange-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+          >
+            振込先を保存
+          </button>
+        </div>
+      </div>
+
       <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-500">
         <p className="font-bold mb-1">現在の設定値（チャット画面に反映されます）</p>
         <p>接客時間: {settings.sessionDurationSeconds / 60}分 ・ 自動退出: {settings.autoCloseOnTimeout ? 'ON' : 'OFF'} ・ 再リクエスト: {settings.allowReRequest ? 'ON' : 'OFF'}</p>
         <p>画像: 最大{settings.maxImageSizeMB}MB ・ {settings.maxImagesPerMessage}枚まで</p>
+        <p>出店料振込先: 銀行 {settings.feeBankInfo ? '設定済' : '未設定'} ・ PayPay {settings.feePaypayId ? '設定済' : '未設定'}</p>
       </div>
     </div>
   );

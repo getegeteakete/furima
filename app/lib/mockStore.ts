@@ -60,6 +60,10 @@ export type ChatSettings = {
   maxImagesPerMessage: number; // ⑧ メッセージあたり画像枚数
   autoCloseOnTimeout: boolean; // ⑨ 時間切れ自動退出
   allowReRequest: boolean; // ⑨ 再リクエスト許可
+  // 出店料(¥1,200)の振込先。出店者が支払い申告する際に表示する運営の受取口座。
+  // ※ 商品代金は引き続き運営が持たない（出店者⇔購入者の直接取引）。これは出店料のみ。
+  feeBankInfo?: string; // 銀行振込先（銀行名・支店・口座種別・番号・名義を1テキストで）
+  feePaypayId?: string; // PayPay送金先（PayPay ID 等）
 };
 
 // ---------- デフォルト値 ----------
@@ -70,6 +74,8 @@ const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   maxImagesPerMessage: 5,
   autoCloseOnTimeout: true,
   allowReRequest: true,
+  feeBankInfo: '',
+  feePaypayId: '',
 };
 
 const DEFAULT_USERS: MockUser[] = [
